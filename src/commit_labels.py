@@ -57,9 +57,27 @@ def main() -> None:
     skipped = 0
 
     for r in review_rows:
-        paper_id = r.get("paper_id")
-        if not paper_id:
-            skipped += 1
+        if paper_id in by_id:
+            cur = by_id[paper_id]
+
+            # ✅ fill-only: 기존 값이 비어있을 때만 채운다 (사람 수정값 보호)
+            if not (cur.get("topic_l1") or "").strip():
+                cur["topic_l1"] = final_l1
+
+            # topic_l2도 동일
+            if final_l2 and not (cur.get("topic_l2") or "").strip():
+                cur["topic_l2"] = final_l2
+
+            # tags는 "합집합(중복제거)"
+            if tags:
+                cur_tags = normalize_tags(cur.get("tags"))
+                cur["tags"] = sorted(set(cur_tags) | set(tags))
+
+            updated += 1
+        else:
+            by_id[paper_id] = out
+            added += 1
+
             continue
 
         final_l1 = (r.get("final_l1") or "").strip()
@@ -96,3 +114,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
