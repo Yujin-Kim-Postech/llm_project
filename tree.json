@@ -5,17 +5,17 @@
       "name": "Household Insurance Demand",
       "children": [
         {
-          "name": "Family, Informal Insurance & Demographics",
-          "value": 1,
-          "paper_ids": [
-            "doi:10.1111/jori.70036"
-          ]
-        },
-        {
           "name": "Health, Longevity & Life-cycle Risk",
           "value": 1,
           "paper_ids": [
             "doi:10.1111/jori.70032"
+          ]
+        },
+        {
+          "name": "Unlabeled",
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.70036"
           ]
         }
       ]
@@ -24,7 +24,7 @@
       "name": "Insurer Behavior & Performance",
       "children": [
         {
-          "name": "Capital, Solvency & Financial Strength",
+          "name": "Unlabeled",
           "value": 1,
           "paper_ids": [
             "doi:10.1111/jori.70034"

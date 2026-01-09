@@ -38,15 +38,48 @@ RULES_L1 = {
   ],
 }
 
-def score_rules(text: str, rules: Dict[str, List[Tuple[str,int]]]):
-    scores = defaultdict(int)
-    evidence = defaultdict(list)
-    for label, pats in rules.items():
-        for pat, w in pats:
-            if re.search(pat, text, flags=re.IGNORECASE):
-                scores[label] += w
-                evidence[label].append(pat)
-    return dict(scores), dict(evidence)
+def score_rules(text: str, rules: dict):
+    """
+    rules: {label: [pattern OR [pattern, weight] OR (pattern, weight), ...]}
+    Returns:
+      scores: dict[label] = int
+      evidence: dict[label] = list of matched patterns (string)
+    """
+    import re
+
+    scores = {}
+    evidence = {}
+
+    for label, pats in (rules or {}).items():
+        scores[label] = 0
+        evidence[label] = []
+
+        if not pats:
+            continue
+
+        for item in pats:
+            # item can be:
+            # - "regex"
+            # - ["regex", weight]
+            # - ("regex", weight)
+            if isinstance(item, str):
+                pat, w = item, 1
+            elif isinstance(item, (list, tuple)) and len(item) >= 1:
+                pat = item[0]
+                w = item[1] if len(item) >= 2 and isinstance(item[1], (int, float)) else 1
+            else:
+                continue
+
+            try:
+                if re.search(pat, text, flags=re.IGNORECASE):
+                    scores[label] += int(w)
+                    evidence[label].append(pat)
+            except re.error:
+                # bad regex should not crash the pipeline
+                continue
+
+    return scores, evidence
+
 
 def topk(scores: Dict[str,int], k: int = 3):
     return sorted(scores.items(), key=lambda x: x[1], reverse=True)[:k]
@@ -55,3 +88,32 @@ def recommend_l1(paper: dict, k: int = 3):
     text = paper_text(paper)
     scores, evidence = score_rules(text, RULES_L1)
     return topk(scores, k), evidence
+
+def recommend_l2(paper: dict, l1: str):
+    """
+    Return (l2_top3, evidence_l2) given a fixed L1.
+    l2_top3: list of [label, score]
+    evidence_l2: dict[label] = list of regex patterns fired
+    """
+    from src.ontology import L2_RULES  # uses rules defined in ontology.py
+    text = paper_text(paper)
+
+    rules = L2_RULES.get(l1, {})
+    scores, evidence = score_rules(text, rules)
+    top3 = topk(scores, k=3)
+    return top3, evidence
+
+# add to src/weak_label.py
+
+from src.ontology import L2_RULES
+
+def recommend_l2(paper: dict, l1: str):
+    """
+    Recommend L2 labels within a given L1.
+    Returns: (l2_top3, evidence_l2)
+    """
+    text = paper_text(paper)  # existing helper in your weak_label.py
+    rules = L2_RULES.get(l1, {})
+    scores, evidence = score_rules(text, rules)  # existing helper
+    top3 = topk(scores, k=3)  # existing helper
+    return top3, evidence

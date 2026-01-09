@@ -1,0 +1,58 @@
+# ontology.yaml
+# Created Date: 2026.01.09
+# Updated Date: 2026.01.09
+# Description: Ontology for Insurance Economics Research Topics
+
+L1:
+  - Household Insurance Demand
+  - Corporate Risk Management
+  - Insurer Behavior & Performance
+  - Market / Regulation / Policy
+  - Risk & Loss Modeling
+
+L2:
+  Household Insurance Demand:
+    - Health, Longevity & Life-cycle Risk
+    - Family, Informal Insurance & Demographics
+    - Demand / Take-up / WTP
+  Insurer Behavior & Performance:
+    - Capital, Solvency & Financial Strength
+    - Underwriting, Reserving & Reinsurance
+    - Organization / Incentives / Operations
+  Risk & Loss Modeling:
+    - Pricing, Valuation & Reserving Models
+    - Risk Measurement & Classification
+    - Robustness / Ambiguity
+  Market / Regulation / Policy:
+    - Regulation & Solvency Policy
+    - Market Structure & Competition
+  Corporate Risk Management:
+    - Hedging / ERM / Insurance as Risk Management
+
+# ⭐ 업그레이드 핵심: L2_RULES (각 L2를 잡는 regex/키워드)
+L2_RULES:
+  Household Insurance Demand:
+    Health, Longevity & Life-cycle Risk:
+      - "\\b(long[- ]?term care|LTC|health|mortality|morbidity|aging|longevity)\\b"
+      - "\\b(willingness to pay|WTP|take[- ]?up|purchase|demand)\\b"
+    Family, Informal Insurance & Demographics:
+      - "\\b(son preference|children'?s gender|fertility|household|family)\\b"
+      - "\\b(pension|annuity|retirement)\\b"
+    Demand / Take-up / WTP:
+      - "\\b(willingness to pay|WTP|take[- ]?up|purchase|demand)\\b"
+
+  Insurer Behavior & Performance:
+    Capital, Solvency & Financial Strength:
+      - "\\b(capital|solvency|RBC|risk[- ]based capital|leverage|liquidity)\\b"
+      - "\\b(property casualty|P\\&C|insurer|insurance company)\\b"
+    Underwriting, Reserving & Reinsurance:
+      - "\\b(reinsurance|underwriting|reserving|loss reserve|claims)\\b"
+
+  Risk & Loss Modeling:
+    Pricing, Valuation & Reserving Models:
+      - "\\b(pricing|premium|valuation|reserving|tariff)\\b"
+      - "\\b(robust|ambiguity|model uncertainty)\\b"
+    Risk Measurement & Classification:
+      - "\\b(classification|risk profiling|risk scoring|machine learning|AI|neural|prediction)\\b"
+    Robustness / Ambiguity:
+      - "\\b(robust|ambiguity|model uncertainty|worst[- ]case)\\b"
