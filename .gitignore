@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+
+# Generated files
+tree.json
+labels/review_queue.jsonl
+
+# Secrets
+.env

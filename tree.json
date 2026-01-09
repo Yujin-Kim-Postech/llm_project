@@ -1,0 +1,55 @@
+{
+  "name": "ROOT",
+  "children": [
+    {
+      "name": "Household Insurance Demand",
+      "children": [
+        {
+          "name": "Family, Informal Insurance & Demographics",
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.70036"
+          ]
+        },
+        {
+          "name": "Health, Longevity & Life-cycle Risk",
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.70032"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Insurer Behavior & Performance",
+      "children": [
+        {
+          "name": "Capital, Solvency & Financial Strength",
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.70034"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Risk & Loss Modeling",
+      "children": [
+        {
+          "name": "Pricing, Valuation & Reserving Models",
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.70035"
+          ]
+        },
+        {
+          "name": "Risk Measurement & Classification",
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.70033"
+          ]
+        }
+      ]
+    }
+  ]
+}

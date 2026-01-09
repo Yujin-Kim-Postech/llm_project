@@ -1,0 +1,46 @@
+# ontology.yaml
+# Created Date: 2026.01.09
+# Updated Date: 2026.01.09
+# Description: Ontology for Insurance Economics Research Topics
+
+L1:
+  - Household Insurance Demand
+  - Corporate Risk Management
+  - Insurer Behavior & Performance
+  - Market / Regulation / Policy
+  - Risk & Loss Modeling
+
+L2:
+  Household Insurance Demand:
+    - Risk Preferences & Perceptions
+    - Health, Longevity & Life-cycle Risk
+    - Income, Wealth & Liquidity Constraints
+    - Family, Informal Insurance & Demographics
+    - Information, Financial Literacy & Behavioral Bias
+
+  Corporate Risk Management:
+    - Hedging vs Insurance Choice
+    - Financial Constraints & Risk Management
+    - Investment, Leverage & Risk-taking
+    - Governance, Incentives & ERM
+
+  Insurer Behavior & Performance:
+    - Capital, Solvency & Financial Strength
+    - Pricing & Underwriting Behavior
+    - Risk Exposure & Portfolio Management
+    - Reinsurance & Risk Transfer
+    - Performance, Efficiency & Competition
+
+  Market / Regulation / Policy:
+    - Insurance Regulation & Solvency Policy
+    - Public Insurance & Social Programs
+    - Market Structure & Competition
+    - Policy Shocks & Reforms
+    - Availability & Affordability
+
+  Risk & Loss Modeling:
+    - Loss Distribution & Extreme Risk
+    - Pricing, Valuation & Reserving Models
+    - Risk Measurement & Classification
+    - Decision-making under Uncertainty
+    - Computational & AI-based Risk Models
