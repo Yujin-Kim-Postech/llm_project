@@ -57,6 +57,27 @@ def main() -> None:
     skipped = 0
 
     for r in review_rows:
+        paper_id = r.get("paper_id")
+        if not paper_id:
+            skipped += 1
+            continue
+
+        final_l1 = (r.get("final_l1") or "").strip()
+        final_l2 = (r.get("final_l2") or "").strip()
+        tags = normalize_tags(r.get("tags"))
+
+        # Only commit if at least L1 is decided.
+        if not final_l1:
+            skipped += 1
+            continue
+
+        out = {
+            "paper_id": paper_id,
+            "topic_l1": final_l1,
+            "topic_l2": final_l2,
+            "tags": tags,
+        }
+
         if paper_id in by_id:
             cur = by_id[paper_id]
 
@@ -78,31 +99,6 @@ def main() -> None:
             by_id[paper_id] = out
             added += 1
 
-            continue
-
-        final_l1 = (r.get("final_l1") or "").strip()
-        final_l2 = (r.get("final_l2") or "").strip()
-        tags = normalize_tags(r.get("tags"))
-
-        # Only commit if at least L1 is decided.
-        if not final_l1:
-            skipped += 1
-            continue
-
-        out = {
-            "paper_id": paper_id,
-            "topic_l1": final_l1,
-            "topic_l2": final_l2,
-            "tags": tags,
-        }
-
-        if paper_id in by_id:
-            # update existing
-            by_id[paper_id].update(out)
-            updated += 1
-        else:
-            by_id[paper_id] = out
-            added += 1
 
     # write back in stable order (sorted by paper_id)
     merged = [by_id[k] for k in sorted(by_id.keys())]
