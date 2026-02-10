@@ -1,98 +1,83 @@
-# ontology.yaml
-# Created Date: 2026-02-10
-# Updated Date: 2026-02-10
-# Description: Empirical-Only Minimal Tree (2-depth) for Insurance/Risk Economics
-
 L1:
-  - A. Insurance Demand · Contracts · Market Frictions
-  - B. Claims · Pricing · Reserving
-  - C. Catastrophe · Climate · Reinsurance · ILS
-  - D. Operational · Cyber · Technology Risk
-  - E. Finance & Macro-Finance Links
-
+- A. Insurance Demand · Contracts · Market Frictions
+- B. Claims · Pricing · Reserving
+- C. Catastrophe · Climate · Reinsurance · ILS
+- D. Operational · Cyber · Technology Risk
+- E. Finance & Macro-Finance Links
 L2:
   A. Insurance Demand · Contracts · Market Frictions:
-    - A1. Insurance demand / purchase behavior (household & corporate)
-    - A2. Contracts, underwriting & information frictions (AS/MH/Fraud)
-    - A3. Market structure, regulation & availability/affordability
-
+  - A1. Insurance demand / purchase behavior (household & corporate)
+  - A2. Contracts, underwriting & information frictions (AS/MH/Fraud)
+  - A3. Market structure, regulation & availability/affordability
   B. Claims · Pricing · Reserving:
-    - B1. Claim frequency/severity & loss prediction (traditional + ML)
-    - B2. Reserving / claims development / IBNR
-
+  - B1. Claim frequency/severity & loss prediction (traditional + ML)
+  - B2. Reserving / claims development / IBNR
   C. Catastrophe · Climate · Reinsurance · ILS:
-    - C1. Nat-cat & climate extremes: losses/exposure/insurance outcomes
-    - C2. Reinsurance: capacity, pricing cycles, supply frictions
-    - C3. CAT bonds / ILS: issuance, spreads, triggers, basis risk
-
+  - C1. Nat-cat & climate extremes: losses/exposure/insurance outcomes
+  - C2. Reinsurance: capacity, pricing cycles, supply frictions
+  - C3. CAT bonds / ILS: issuance, spreads, triggers, basis risk
   D. Operational · Cyber · Technology Risk:
-    - D1. Operational risk (loss events & loss data empirics)
-    - D2. Cyber risk (events, contagion, firm value, cyber insurance)
-
+  - D1. Operational risk (loss events & loss data empirics)
+  - D2. Cyber risk (events, contagion, firm value, cyber insurance)
   E. Finance & Macro-Finance Links:
-    - E1. Risk premia & asset pricing (empirical; disaster/tail/uncertainty)
-    - E2. Intermediation, systemic risk & financial stability (incl. insurers)
-    - E3. Climate finance (physical/transition risk in markets & corporate finance)
-
-# L2_RULES: regex/keywords for weak labeling
-# - Empirical-only intention: focuses on applied/empirical keywords; still broad enough to catch adjacent work.
-# - Use lower/upper-case robust patterns via explicit alternations where needed.
-
+  - E1. Risk premia & asset pricing (empirical; disaster/tail/uncertainty)
+  - E2. Intermediation, systemic risk & financial stability (incl. insurers)
+  - E3. Climate finance (physical/transition risk in markets & corporate finance)
 L2_RULES:
   A. Insurance Demand · Contracts · Market Frictions:
     A1. Insurance demand / purchase behavior (household & corporate):
-      - "\\b(insurance demand|demand for insurance|take[- ]?up|purchase|buying|coverage choice|coverage|deductible|premium sensitivity|price elasticity|renewal|lapse|switching)\\b"
-      - "\\b(learning|salience|risk aversion|ambiguity aversion|prospect theory)\\b"
+    - \b(insurance demand|demand for insurance|insurance take[- ]?up|policy take[- ]?up|insurance purchase|buying insurance|coverage
+      choice|policy coverage|insurance coverage|deductible choice|premium sensitivity|price elasticity|renewal|policy renewal|lapse|policy
+      lapse|switching)\b
+    - (?is)(?=.*\binsurance\b).*\b(learning|salience|risk aversion|ambiguity aversion|prospect theory)\b
     A2. Contracts, underwriting & information frictions (AS/MH/Fraud):
-      - "\\b(adverse selection|moral hazard|asymmetric information|information asymmetry|screening|underwriting)\\b"
-      - "\\b(risk classification|experience rating|bonus[- ]?malus|fraud|claim inflation|monitoring|verification)\\b"
+    - \b(adverse selection|moral hazard|asymmetric information|information asymmetry|screening|underwriting)\b
+    - \b(risk classification|experience rating|bonus[- ]?malus|fraud|claim inflation|monitoring|verification)\b
     A3. Market structure, regulation & availability/affordability:
-      - "\\b(regulation|rate regulation|solvency|capital requirement|competition|market power)\\b"
-      - "\\b(insurer (entry|exit)|entry|exit|availability|affordability|residual market|uninsurability)\\b"
-
+    - \b(regulation|rate regulation|solvency|capital requirement|insurance regulation|competition|market power)\b
+    - \b(insurer (entry|exit)|entry of insurers|insurer exit|availability of insurance|insurance availability|insurance affordability|residual
+      market|uninsurability)\b
   B. Claims · Pricing · Reserving:
     B1. Claim frequency/severity & loss prediction (traditional + ML):
-      - "\\b(frequency|severity|loss model(l)?ing|loss prediction|GLM|GAM|credibility|mixture|latent class)\\b"
-      - "\\b(copula)\\b"
-      - "\\b(telematics|usage[- ]?based insurance|UBI|machine learning pricing|pricing model|fairness|explainability|XAI)\\b"
-      - "\\b(machine learning|ML|AI|neural|prediction)\\b"
+    - \b(claim(s)? (frequency|severity)|loss (frequency|severity)|insurance claims|paid claims|claim payouts|pure premium|ratemaking|rate
+      making|premium rating|insurance pricing|experience rating|risk classification|underwriting|actuarial)\b
+    - (?is)(?=.*\b(actuarial|ratemaking|underwriting|insurance pricing|premium rating|claim(s)? (frequency|severity)|loss
+      reserving|ibnr|claims development)\b).*\b(GLM|GAM|credibility|mixture|latent class|copula|bayesian)\b
+    - \b(telematics|usage[- ]?based insurance|UBI|pricing model|tariff rating|bonus[- ]?malus|fairness|explainability|XAI)\b
     B2. Reserving / claims development / IBNR:
-      - "\\b(reserving|IBNR|claims development|loss triangle(s)?|triangle(s)?)\\b"
-      - "\\b(chain ladder|stochastic reserving|Bayesian reserving|IFRS\\s?17)\\b"
-
+    - \b(loss reserving|reserving|IBNR|incurred but not reported|claims development|loss development|run[- ]?off triangle(s)?|loss
+      triangle(s)?|claims triangle(s)?)\b
+    - \b(chain ladder|stochastic reserving|bayesian reserving|mack model|bornhuetter[- ]?ferguson|IFRS\s?17)\b
   C. Catastrophe · Climate · Reinsurance · ILS:
     C1. Nat-cat & climate extremes:
-      - "\\b(catastrophe|nat[- ]?cat|natural disaster|flood(s)?|wildfire(s)?|hurricane(s)?|typhoon(s)?|earthquake(s)?)\\b"
-      - "\\b(insured loss(es)?|insurance outcomes|insurance coverage|claims|premium(s)?|reinsurance)\\b"
-      - "\\b(climate risk|extreme weather|heatwave(s)?|sea level|physical risk|adaptation|mitigation)\\b"
-
+    - \b(catastrophe|nat[- ]?cat|natural disaster|flood(s)?|wildfire(s)?|hurricane(s)?|typhoon(s)?|earthquake(s)?|storm surge|hail)\b
+    - \b(insured loss(es)?|insurance claims|claim(s)? (frequency|severity)|paid claims|claim payouts|insurance premium(s)?|reinsurance)\b
+    - \b(climate risk|extreme weather|heatwave(s)?|sea level|physical risk|adaptation|mitigation)\b
     C2. Reinsurance:
-      - "\\b(reinsurance|retrocession|capacity|capital constraints|supply friction(s)?)\\b"
-      - "\\b(pricing cycle|hard market|soft market|reinsurance pricing)\\b"
-    C3. CAT bonds / ILS: 
-      - "\\b(catastrophe bond(s)?|cat bond(s)?|ils\\b|insurance[- ]linked securit(y|ies)|insurance[- ]linked securities)\\b"
-      - "\\b(parametric|index trigger|indemnity trigger|modeled loss|basis risk)\\b"
-      - "\\b(secondary market|rating|spread(s)?|issuance|trigger(s)?)\\b"
-
-
+    - \b(reinsurance|retrocession|reinsurer(s)?)\b
+    - (?is)(?=.*\b(reinsurance|retrocession|cat bond(s)?|catastrophe bond(s)?|ils|insurance[- ]linked)\b).*\b(capacity|capital
+      constraints|supply friction(s)?|pricing cycle|hard market|soft market|reinsurance pricing)\b
+    C3. CAT bonds / ILS:
+    - \b(catastrophe bond(s)?|cat bond(s)?|ils\b|insurance[- ]linked securit(y|ies)|insurance[- ]linked securities)\b
+    - \b(parametric|index trigger|indemnity trigger|modeled loss|basis risk)\b
+    - \b(secondary market|rating|spread(s)?|issuance|trigger(s)?)\b
   D. Operational · Cyber · Technology Risk:
     D1. Operational risk (loss events & loss data empirics):
-      - "\\b(operational risk|op risk|basel(\\s?ii|\\s?iii|\\s?iv)?|ama\\b|sma\\b|advanced measurement approach|standardized measurement approach)\\b"
-      - "\\b(internal loss data|loss event(s)?|loss distribution approach|lda\\b|scenario analysis)\\b"
-      - "\\b(process failure(s)?|control failure(s)?|risk control self assessment|rcsa)\\b"
-
+    - \b(operational risk|op risk|basel(\s?ii|\s?iii|\s?iv)?|ama\b|sma\b|advanced measurement approach|standardized measurement
+      approach)\b
+    - \b(internal loss data|loss event(s)?|loss distribution approach|lda\b|scenario analysis)\b
+    - \b(process failure(s)?|control failure(s)?|risk control self assessment|rcsa)\b
     D2. Cyber risk (events, contagion, firm value, cyber insurance):
-      - "\\b(cyber risk|data breach|ransomware|systemic cyber|accumulation risk)\\b"
-      - "\\b(contagion|common shock|event study|firm value|stock market)\\b"
-      - "\\b(cyber insurance|insurance demand|pricing)\\b"
-
+    - \b(cyber risk|data breach|ransomware|systemic cyber|accumulation risk)\b
+    - \b(contagion|common shock|event study|firm value|stock market)\b
+    - \b(cyber insurance|insurance demand|pricing)\b
   E. Finance & Macro-Finance Links:
     E1. Risk premia & asset pricing (empirical; disaster/tail/uncertainty):
-      - "\\b(asset pricing|risk premia|risk premium|tail risk|disaster risk|volatility|uncertainty|predictability)\\b"
-      - "\\b(factor model(s)?|equity premium|insurance[- ]linked return(s)?)\\b"
+    - \b(asset pricing|risk premia|risk premium|tail risk|disaster risk|volatility|uncertainty|predictability)\b
+    - \b(factor model(s)?|equity premium|insurance[- ]linked return(s)?)\b
     E2. Intermediation, systemic risk & financial stability (incl. insurers):
-      - "\\b(systemic risk|financial stability|bank run(s)?|liquidity run(s)?|stress test(s)?)\\b"
-      - "\\b(insurer(s)?|insurance sector|reinsurer(s)?|asset[- ]liability|alm\\b)\\b"
+    - \b(systemic risk|financial stability|bank run(s)?|liquidity run(s)?|stress test(s)?)\b
+    - \b(insurer(s)?|insurance sector|reinsurer(s)?|asset[- ]liability|alm\b)\b
     E3. Climate finance (physical/transition risk in markets & corporate finance):
-      - "\\b(climate finance|physical risk|transition risk|carbon exposure|stranded asset(s)?)\\b"
-      - "\\b(climate beta|cost of capital|lending|investment)\\b"
+    - \b(climate finance|physical risk|transition risk|carbon exposure|stranded asset(s)?)\b
+    - \b(climate beta|cost of capital|lending|investment)\b
