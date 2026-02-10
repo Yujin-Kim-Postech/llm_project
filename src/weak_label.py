@@ -18,10 +18,38 @@ except Exception:  # pragma: no cover
 # ---------------------------
 # Paper → text
 # ---------------------------
+def _flatten_text(x):
+    """
+    Recursively extract all string-like content from dict/list structures.
+    """
+    out = []
+    if x is None:
+        return out
+    if isinstance(x, str):
+        s = x.strip()
+        if s:
+            out.append(s)
+        return out
+    if isinstance(x, (int, float, bool)):
+        out.append(str(x))
+        return out
+    if isinstance(x, list):
+        for it in x:
+            out.extend(_flatten_text(it))
+        return out
+    if isinstance(x, dict):
+        for v in x.values():
+            out.extend(_flatten_text(v))
+        return out
+    out.append(str(x))
+    return out
+
+
 def paper_text(paper: dict) -> str:
     """
     Build a single text blob for weak labeling.
-    Compatible with both older (JORI) and newer (QJE) schema variants.
+    Now matches against the *entire* empirical/theoretical summary,
+    not only title/abstract.
     """
     md = paper.get("metadata", {}) or {}
     raw = paper.get("raw_text", {}) or {}
@@ -29,44 +57,55 @@ def paper_text(paper: dict) -> str:
     theo = paper.get("theoretical_summary") or ""
     study_type = paper.get("study_type") or ""
 
-    # keywords: old/new compatible
     kw_author = md.get("keywords_author") or md.get("keywords") or []
     if isinstance(kw_author, str):
         kw_author = [kw_author]
+
     kw_text = raw.get("keywords_text") or md.get("keywords_text") or ""
 
-    # empirical fields (new schema)
-    emp_subject = emp.get("subject") or []
-    emp_keywords = emp.get("keywords") or []
-    if isinstance(emp_subject, str):
-        emp_subject = [emp_subject]
-    if isinstance(emp_keywords, str):
-        emp_keywords = [emp_keywords]
+    parts = []
 
-    parts = [
-        md.get("title", ""),
-        raw.get("abstract", ""),
-        " ".join([str(x) for x in kw_author if str(x).strip()]),
-        kw_text,
-        study_type,
-        theo,
-        " ".join([str(x) for x in emp_subject if str(x).strip()]),
-        " ".join([str(x) for x in emp_keywords if str(x).strip()]),
-    ]
-    return "\n".join([p for p in parts if p])
+    # ---- bibliographic ----
+    parts.append(md.get("title", ""))
+    parts.append(raw.get("abstract", ""))
+
+    # ---- keywords ----
+    parts.append(" ".join(str(x) for x in kw_author if str(x).strip()))
+    parts.append(str(kw_text) if kw_text else "")
+
+    # ---- study info ----
+    parts.append(str(study_type))
+    parts.append(str(theo) if theo else "")
+
+    # ---- 핵심: empirical_analysis 전체 flatten ----
+    if isinstance(emp, dict):
+        parts.append(" ".join(_flatten_text(emp)))
+    else:
+        parts.append(str(emp))
+
+    # normalize
+    return "\n".join(p for p in parts if p).lower()
+
 
 
 # ---------------------------
 # Scoring utilities
 # ---------------------------
-def score_rules(text: str, rules: dict) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
-    """
-    rules: {label: [pattern OR [pattern, weight] OR (pattern, weight), ...]}
+# label -> (anchor_regex, blocked_regex_when_no_anchor)
+GATES = {
+    # C3: spread/issuance/trigger는 ILS/CAT bond 앵커 없으면 무시
+    "C3. CAT bonds / ILS: issuance, spreads, triggers, basis risk": (
+        r"\b(catastrophe bond(s)?|cat bond(s)?|ils\b|insurance[- ]linked securit(y|ies))\b",
+        r"\b(spread(s)?|issuance|trigger(s)?)\b",
+    ),
+    # D1: capital 같은 단독 패턴은 원천 차단(ontology에서 지우는 게 1순위지만 방어로)
+    "D1. Operational risk (loss events & loss data empirics)": (
+        r"\b(operational risk|op risk|internal loss data|loss distribution approach|lda\b)\b",
+        r"\b(capital)\b",
+    ),
+}
 
-    Returns:
-        scores: dict[label] = int
-        evidence: dict[label] = list of regex patterns fired (string)
-    """
+def score_rules(text: str, rules: dict) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
     scores: Dict[str, int] = {}
     evidence: Dict[str, List[str]] = {}
 
@@ -77,11 +116,19 @@ def score_rules(text: str, rules: dict) -> Tuple[Dict[str, int], Dict[str, List[
         if not pats:
             continue
 
+        # --- Gate 준비: label에 gate가 있으면 anchor 존재 여부를 미리 계산 ---
+        gate = GATES.get(label)
+        if gate is not None:
+            anchor_pat, blocked_list = gate
+            try:
+                has_anchor = re.search(anchor_pat, text, flags=re.IGNORECASE) is not None
+            except re.error:
+                has_anchor = False
+        else:
+            has_anchor = True
+            blocked_list = []
+
         for item in pats:
-            # item can be:
-            # - "regex"
-            # - ["regex", weight]
-            # - ("regex", weight)
             if isinstance(item, str):
                 pat, w = item, 1
             elif isinstance(item, (list, tuple)) and len(item) >= 1:
@@ -90,15 +137,22 @@ def score_rules(text: str, rules: dict) -> Tuple[Dict[str, int], Dict[str, List[
             else:
                 continue
 
+            # ✅ Gate: anchor 없으면 "blocked rule"은 스킵
+            if gate is not None and not has_anchor:
+                # pat이 blocked_list 중 하나와 "동일(또는 포함)"이면 스킵
+                # (너의 ontology는 pat 문자열이 그대로 들어오니, 이 방식이 제일 안전)
+                if any(pat == b for b in blocked_list):
+                    continue
+
             try:
                 if re.search(pat, text, flags=re.IGNORECASE):
                     scores[label] += int(w)
                     evidence[label].append(str(pat))
             except re.error:
-                # bad regex should not crash the pipeline
                 continue
 
     return scores, evidence
+
 
 
 def topk(scores: Dict[str, int], k: int = 3) -> List[Tuple[str, int]]:
@@ -137,18 +191,28 @@ RULES_L1 = build_l1_rules_from_l2_rules(L2_RULES)
 # ---------------------------
 # Public API (used by review_queue.py)
 # ---------------------------
-def recommend_l1(paper: dict, k: int = 3) -> Tuple[List[Tuple[str, int]], Dict[str, List[str]]]:
-    """
-    Returns:
-        topk_list: [(l1_label, score), ...]
-        evidence:  {l1_label: [regex_fired, ...], ...}
-    """
+def recommend_l1(paper: dict, k: int = 3):
     text = paper_text(paper)
+    scores = {}
+    evidence = {}
 
-    # Ensure we only score labels present in ontology L1_LIST (order/whitelist)
-    rules = {l1: RULES_L1.get(l1, []) for l1 in (L1_LIST or list(RULES_L1.keys()))}
-    scores, evidence = score_rules(text, rules)
+    for l1 in (L1_LIST or list(L2_RULES.keys())):
+        l1_rules_block = L2_RULES.get(l1, {}) or {}
+        # l1_rules_block: {l2: [regex...]}
+        l2_scores, l2_evidence = score_rules(text, l1_rules_block)
+
+        # L1 점수: (추천) max, 또는 sum
+        best_l2 = max(l2_scores.values()) if l2_scores else 0
+        scores[l1] = best_l2
+
+        # evidence는 L1 안에서 터진 모든 regex를 모으기 (혹은 best L2만)
+        fired = []
+        for l2, ev in l2_evidence.items():
+            fired.extend(ev)
+        evidence[l1] = fired
+
     return topk(scores, k), evidence
+
 
 
 def recommend_l2(paper: dict, l1: str, k: int = 3) -> Tuple[List[Tuple[str, int]], Dict[str, List[str]]]:

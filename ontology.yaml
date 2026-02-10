@@ -61,21 +61,26 @@ L2_RULES:
       - "\\b(chain ladder|stochastic reserving|Bayesian reserving|IFRS\\s?17)\\b"
 
   C. Catastrophe · Climate · Reinsurance · ILS:
-    C1. Nat-cat & climate extremes: 
-      - "\\b(catastrophe|cat|nat[- ]?cat|natural disaster|flood|wildfire|hurricane|earthquake)\\b"
-      - "\\b(climate risk|extreme(s)?|hazard|exposure|vulnerability|insured loss|adaptation|mitigation)\\b"
+    C1. Nat-cat & climate extremes:
+      - "\\b(catastrophe|nat[- ]?cat|natural disaster|flood(s)?|wildfire(s)?|hurricane(s)?|typhoon(s)?|earthquake(s)?)\\b"
+      - "\\b(insured loss(es)?|insurance outcomes|insurance coverage|claims|premium(s)?|reinsurance)\\b"
+      - "\\b(climate risk|extreme weather|heatwave(s)?|sea level|physical risk|adaptation|mitigation)\\b"
+
     C2. Reinsurance:
       - "\\b(reinsurance|retrocession|capacity|capital constraints|supply friction(s)?)\\b"
       - "\\b(pricing cycle|hard market|soft market|reinsurance pricing)\\b"
-    C3. CAT bonds / ILS:
-      - "\\b(catastrophe bond(s)?|cat bond(s)?|ILS|insurance[- ]linked securit(y|ies))\\b"
-      - "\\b(spread(s)?|issuance|trigger(s)?|parametric|index|indemnity|basis risk|secondary market|rating|performance)\\b"
+    C3. CAT bonds / ILS: 
+      - "\\b(catastrophe bond(s)?|cat bond(s)?|ils\\b|insurance[- ]linked securit(y|ies)|insurance[- ]linked securities)\\b"
+      - "\\b(parametric|index trigger|indemnity trigger|modeled loss|basis risk)\\b"
+      - "\\b(secondary market|rating|spread(s)?|issuance|trigger(s)?)\\b"
+
 
   D. Operational · Cyber · Technology Risk:
     D1. Operational risk (loss events & loss data empirics):
-      - "\\b(operational risk|op risk|internal loss data|loss data)\\b"
-      - "\\b(LDA|loss distribution approach|scenario analysis|SMA|AMA|process failure(s)?|control(s)?)\\b"
-      - "\\b(capital)\\b"
+      - "\\b(operational risk|op risk|basel(\\s?ii|\\s?iii|\\s?iv)?|ama\\b|sma\\b|advanced measurement approach|standardized measurement approach)\\b"
+      - "\\b(internal loss data|loss event(s)?|loss distribution approach|lda\\b|scenario analysis)\\b"
+      - "\\b(process failure(s)?|control failure(s)?|risk control self assessment|rcsa)\\b"
+
     D2. Cyber risk (events, contagion, firm value, cyber insurance):
       - "\\b(cyber risk|data breach|ransomware|systemic cyber|accumulation risk)\\b"
       - "\\b(contagion|common shock|event study|firm value|stock market)\\b"
@@ -86,8 +91,8 @@ L2_RULES:
       - "\\b(asset pricing|risk premia|risk premium|tail risk|disaster risk|volatility|uncertainty|predictability)\\b"
       - "\\b(factor model(s)?|equity premium|insurance[- ]linked return(s)?)\\b"
     E2. Intermediation, systemic risk & financial stability (incl. insurers):
-      - "\\b(intermediation|systemic risk|financial stability|contagion|liquidity|run(s)?|stress test(s)?)\\b"
-      - "\\b(insurer investment|ALM|asset[- ]liability|regulation impact)\\b"
+      - "\\b(systemic risk|financial stability|bank run(s)?|liquidity run(s)?|stress test(s)?)\\b"
+      - "\\b(insurer(s)?|insurance sector|reinsurer(s)?|asset[- ]liability|alm\\b)\\b"
     E3. Climate finance (physical/transition risk in markets & corporate finance):
       - "\\b(climate finance|physical risk|transition risk|carbon exposure|stranded asset(s)?)\\b"
       - "\\b(climate beta|cost of capital|lending|investment)\\b"
