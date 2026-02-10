@@ -61,13 +61,13 @@ L2_RULES:
       - "\\b(chain ladder|stochastic reserving|Bayesian reserving|IFRS\\s?17)\\b"
 
   C. Catastrophe · Climate · Reinsurance · ILS:
-    C1. Nat-cat & climate extremes: losses/exposure/insurance outcomes:
+    C1. Nat-cat & climate extremes: 
       - "\\b(catastrophe|cat|nat[- ]?cat|natural disaster|flood|wildfire|hurricane|earthquake)\\b"
       - "\\b(climate risk|extreme(s)?|hazard|exposure|vulnerability|insured loss|adaptation|mitigation)\\b"
-    C2. Reinsurance: capacity, pricing cycles, supply frictions:
+    C2. Reinsurance:
       - "\\b(reinsurance|retrocession|capacity|capital constraints|supply friction(s)?)\\b"
       - "\\b(pricing cycle|hard market|soft market|reinsurance pricing)\\b"
-    C3. CAT bonds / ILS: issuance, spreads, triggers, basis risk:
+    C3. CAT bonds / ILS:
       - "\\b(catastrophe bond(s)?|cat bond(s)?|ILS|insurance[- ]linked securit(y|ies))\\b"
       - "\\b(spread(s)?|issuance|trigger(s)?|parametric|index|indemnity|basis risk|secondary market|rating|performance)\\b"
 
