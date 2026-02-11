@@ -40,6 +40,7 @@ L2:
 L0_RULES:
   INSURANCE_RISK:
     - "(?is)\\binsurance\\b|\\breinsurance\\b|\\bunderwriting\\b|\\bactuar(ial|y)\\b|\\bclaim(s)?\\b|\\bpremium(s)?\\b"
+    - "(?is)\\binsurance\\s+risk\\b|\\brisk\\s+transfer\\b|\\brisk\\s+pool(ing)?\\b|\\brisk[- ]based\\s+capital\\b|\\bRBC\\b|\\bsolvency(\\s*ii)?\\b"
   GENERAL_ECONOMICS:
     - "(?is)\\bmacroeconom(ics|y)\\b|\\bmonetary\\b|\\bfiscal\\b|\\bgdp\\b|\\binflation\\b|\\bunemployment\\b|\\btrade\\b|\\bindustrial organization\\b"
 

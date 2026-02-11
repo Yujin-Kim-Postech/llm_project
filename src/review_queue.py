@@ -11,24 +11,28 @@ from src.ontology import POLICIES
 
 ROOT = Path(__file__).resolve().parents[1]
 
-
+# Default policy (authoritative here)
 DEFAULT_POLICY = {
-    "l0_policy": {"min_score": 1, "min_gap": 1},  # ✅ 여기서 L0 min_score=1 적용
+    "l0_policy": {"min_score": 1, "min_gap": 1},  # ✅ L0 min_score=1
     "l1_policy": {"min_score": 4, "min_gap": 2},
     "l2_policy": {"min_score": 4, "min_gap": 2},
 }
 
-# Allow ontology.yaml to override policy if present
+# Policy merge behavior:
+# - DEFAULT_POLICY wins over ontology.yaml (POLICIES), so your local tweak works immediately.
+# - If you want ontology.yaml to win, swap the merge order below.
 POLICY = {
     "l0_policy": dict(DEFAULT_POLICY["l0_policy"]),
     "l1_policy": dict(DEFAULT_POLICY["l1_policy"]),
     "l2_policy": dict(DEFAULT_POLICY["l2_policy"]),
 }
+
 if isinstance(POLICIES, dict):
     for k in ("l0_policy", "l1_policy", "l2_policy"):
         if isinstance(POLICIES.get(k), dict):
-            POLICY[k].update(POLICIES[k])
-
+            # Only fill missing keys from ontology (DEFAULT has priority)
+            for kk, vv in POLICIES[k].items():
+                POLICY[k].setdefault(kk, vv)
 
 AI_TAG_RE = re.compile(
     r"(?is)\bai\b|artificial intelligence|machine learning|deep learning|neural network|large language model|llm"
@@ -52,10 +56,6 @@ def safe_tag_heuristics(p: Mapping[str, Any]) -> List[str]:
     if AI_TAG_RE.search(t):
         tags.append("ai")
 
-    # keep your existing custom tags if you had any (example placeholders)
-    # if re.search(r"(?is)\bcyber\b|\bsecurity\b", t):
-    #     tags.append("cyber-risk")
-
     return tags
 
 
@@ -68,38 +68,62 @@ def _decision(top3: List[List[Any]] | List[tuple], min_score: int, min_gap: int)
     best = int(top3[0][1])
     second = int(top3[1][1]) if len(top3) > 1 else 0
     gap = best - second
-    auto_ok = (best >= min_score) and (gap >= min_gap)
+    auto_ok = (best >= int(min_score)) and (gap >= int(min_gap))
     return (auto_ok, best, gap)
 
 
 def process_paper(p: Dict[str, Any]) -> Dict[str, Any]:
-    # 1) L0
+    # Ensure auto_meta exists early
+    p["auto_meta"] = p.get("auto_meta") or {}
+
+    # 1) L0 추천
     r0 = recommend_l0(p)
     p["l0_top3"] = r0.top3
     p["evidence_l0"] = r0.evidence
 
-    l0_ok, l0_best, l0_gap = _decision(p["l0_top3"], **POLICY["l0_policy"])
-    if l0_ok:
-        p["final_l0"] = p["l0_top3"][0][0]
-        p["auto_meta"] = p.get("auto_meta") or {}
-        p["auto_meta"]["l0_policy"] = POLICY["l0_policy"]
-        p["auto_meta"]["l0_reason"] = f"auto(score={l0_best},gap={l0_gap})"
+    # Store applied policy in output
+    p["auto_meta"]["l0_policy"] = POLICY["l0_policy"]
+
+    # ---- L0 fallback rule (INSURANCE_RISK only when strong; else GENERAL) ----
+    if p["l0_top3"]:
+        best_label = str(p["l0_top3"][0][0])
+        best_score = int(p["l0_top3"][0][1])
+        second_score = int(p["l0_top3"][1][1]) if len(p["l0_top3"]) > 1 else 0
+        gap = best_score - second_score
     else:
-        p["final_l0"] = ""
-        p["auto_meta"] = p.get("auto_meta") or {}
-        p["auto_meta"]["l0_policy"] = POLICY["l0_policy"]
-        p["auto_meta"]["l0_reason"] = f"manual_needed(score={l0_best},gap={l0_gap})"
-        # still attach tags
-        p["tags"] = list(dict.fromkeys((p.get("tags") or []) + safe_tag_heuristics(p)))
-        # do not proceed to L1/L2 if L0 not fixed
+        best_label, best_score, gap = "", 0, 0
+
+    # Only enforce thresholding for INSURANCE_RISK.
+    if best_label == "INSURANCE_RISK":
+        min_score = int(POLICY["l0_policy"]["min_score"])
+        min_gap = int(POLICY["l0_policy"]["min_gap"])
+        if best_score >= min_score and gap >= min_gap:
+            p["final_l0"] = "INSURANCE_RISK"
+            p["auto_meta"]["l0_reason"] = f"auto_insurance(score={best_score},gap={gap})"
+        else:
+            p["final_l0"] = "GENERAL_ECONOMICS"
+            p["auto_meta"]["l0_reason"] = f"fallback_general(weak_insurance score={best_score},gap={gap})"
+    else:
+        # Non-insurance -> default GENERAL
+        p["final_l0"] = "GENERAL_ECONOMICS"
+        p["auto_meta"]["l0_reason"] = f"fallback_general(best={best_label},score={best_score},gap={gap})"
+
+    # tags always
+    p["tags"] = list(dict.fromkeys((p.get("tags") or []) + safe_tag_heuristics(p)))
+
+    # If L0 is GENERAL, skip L1/L2 entirely (insurance ontology tree not applicable)
+    if p["final_l0"] == "GENERAL_ECONOMICS":
         p["l1_top3"], p["evidence_l1"] = [], {}
         p["l2_top3"], p["evidence_l2"] = [], {}
         p["final_l1"], p["final_l2"] = "", ""
-        p["auto_meta"]["l1_reason"] = "skipped(manual_l0_needed)"
-        p["auto_meta"]["l2_reason"] = "skipped(no_final_l1)"
+        p["auto_meta"]["l1_policy"] = POLICY["l1_policy"]
+        p["auto_meta"]["l2_policy"] = POLICY["l2_policy"]
+        p["auto_meta"]["l1_reason"] = "skipped(non_insurance_l0)"
+        p["auto_meta"]["l2_reason"] = "skipped(non_insurance_l0)"
         return p
 
-    # 2) L1
+    # 2) L1 (only for INSURANCE_RISK)
+    p["auto_meta"]["l1_policy"] = POLICY["l1_policy"]
     r1 = recommend_l1(p, final_l0=p["final_l0"])
     p["l1_top3"] = r1.top3
     p["evidence_l1"] = r1.evidence
@@ -107,14 +131,13 @@ def process_paper(p: Dict[str, Any]) -> Dict[str, Any]:
     l1_ok, l1_best, l1_gap = _decision(p["l1_top3"], **POLICY["l1_policy"])
     if l1_ok:
         p["final_l1"] = p["l1_top3"][0][0]
-        p["auto_meta"]["l1_policy"] = POLICY["l1_policy"]
         p["auto_meta"]["l1_reason"] = f"auto(score={l1_best},gap={l1_gap})"
     else:
         p["final_l1"] = ""
-        p["auto_meta"]["l1_policy"] = POLICY["l1_policy"]
         p["auto_meta"]["l1_reason"] = f"manual_needed(score={l1_best},gap={l1_gap})"
 
     # 3) L2 (only if final_l1 exists)
+    p["auto_meta"]["l2_policy"] = POLICY["l2_policy"]
     if p["final_l1"]:
         r2 = recommend_l2(p, final_l1=p["final_l1"])
         p["l2_top3"] = r2.top3
@@ -123,19 +146,15 @@ def process_paper(p: Dict[str, Any]) -> Dict[str, Any]:
         l2_ok, l2_best, l2_gap = _decision(p["l2_top3"], **POLICY["l2_policy"])
         if l2_ok:
             p["final_l2"] = p["l2_top3"][0][0]
-            p["auto_meta"]["l2_policy"] = POLICY["l2_policy"]
             p["auto_meta"]["l2_reason"] = f"auto(score={l2_best},gap={l2_gap})"
         else:
             p["final_l2"] = ""
-            p["auto_meta"]["l2_policy"] = POLICY["l2_policy"]
             p["auto_meta"]["l2_reason"] = f"manual_needed(score={l2_best},gap={l2_gap})"
     else:
         p["l2_top3"], p["evidence_l2"] = [], {}
         p["final_l2"] = ""
         p["auto_meta"]["l2_reason"] = "skipped(no_final_l1)"
 
-    # tags
-    p["tags"] = list(dict.fromkeys((p.get("tags") or []) + safe_tag_heuristics(p)))
     return p
 
 
