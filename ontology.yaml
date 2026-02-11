@@ -35,16 +35,62 @@ L2:
     - E2. Intermediation, systemic risk & financial stability (incl. insurers)
     - E3. Climate finance (physical/transition risk in markets & corporate finance)
 
-# --- add to ontology.yaml ---
-
+# =========================
+# L0 Rules (gate)
+# =========================
 L0_RULES:
   INSURANCE_RISK:
-    - "(?is)\\binsurance\\b|\\breinsurance\\b|\\bunderwriting\\b|\\bactuar(ial|y)\\b|\\bclaim(s)?\\b|\\bpremium(s)?\\b"
+    # strong insurance-domain signals (avoid "premium" standalone)
+    - "(?is)\\binsurance\\b|\\breinsurance\\b|\\bunderwriting\\b|\\bactuar(ial|y)\\b|\\bpolicyholder(s)?\\b|\\bdeductible(s)?\\b|\\bcoinsurance\\b|\\bloss ratio\\b|\\bcat(astrophe)? bond(s)?\\b"
+    # insurance-context "risk" phrases only
     - "(?is)\\binsurance\\s+risk\\b|\\brisk\\s+transfer\\b|\\brisk\\s+pool(ing)?\\b|\\brisk[- ]based\\s+capital\\b|\\bRBC\\b|\\bsolvency(\\s*ii)?\\b"
+    # premium only when clearly insurance context
+    - "(?is)\\binsurance\\s+premium(s)?\\b|\\bpremium\\s+rate(s)?\\b|\\bpremium\\s+pricing\\b"
   GENERAL_ECONOMICS:
-    - "(?is)\\bmacroeconom(ics|y)\\b|\\bmonetary\\b|\\bfiscal\\b|\\bgdp\\b|\\binflation\\b|\\bunemployment\\b|\\btrade\\b|\\bindustrial organization\\b"
+    - "(?is)\\bmacroeconom(ics|y)\\b|\\bmonetary\\b|\\bfiscal\\b|\\bgdp\\b|\\binflation\\b|\\bunemployment\\b|\\btrade\\b|\\bindustrial organization\\b|\\bpublic finance\\b|\\blabor\\b|\\beducation\\b|\\bhealth\\b|\\btax\\b"
 
+# =========================
+# L1 Rules (NEW: to avoid l1_not_configured)
+# =========================
+L1_RULES:
+  A. Insurance Demand · Contracts · Market Frictions:
+    - "(?is)\\b(insurance demand|take[- ]?up|coverage choice|policy choice|lapse|renewal|willingness to pay|WTP|deductible choice|risk aversion|ambiguity aversion)\\b"
+    - "(?is)\\b(adverse selection|moral hazard|asymmetric information|screening|fraud|underwriting)\\b"
+    - "(?is)\\b(rate regulation|insurance regulation|market structure|availability of insurance|affordability|uninsurability|residual market)\\b"
 
+  B. Claims · Pricing · Reserving:
+    - "(?is)\\b(claim(s)?|loss(es)?)\\b.*\\b(frequency|severity|reserving|ibnr|development|triangle)\\b"
+    - "(?is)\\b(ratemaking|premium rating|tariff|experience rating|credibility|GLM|GAM|loss model|pricing model)\\b"
+
+  C. Catastrophe · Climate · Reinsurance · ILS:
+    - "(?is)\\b(catastrophe|nat[- ]?cat|natural disaster|flood|wildfire|hurricane|earthquake|storm)\\b"
+    - "(?is)\\b(reinsurance|retrocession|reinsurer)\\b"
+    - "(?is)\\b(cat bond|catastrophe bond|ILS|insurance[- ]linked)\\b"
+    - "(?is)\\b(climate risk|extreme weather|physical risk|adaptation|mitigation)\\b"
+
+  D. Operational · Cyber · Technology Risk:
+    - "(?is)\\b(operational risk|op risk|basel|loss event|RCSA|scenario analysis|LDA)\\b"
+    - "(?is)\\b(cyber risk|data breach|ransomware|systemic cyber|cyber insurance)\\b"
+
+  E. Finance & Macro-Finance Links:
+    - "(?is)\\b(asset pricing|risk premia|risk premium|tail risk|disaster risk|volatility|uncertainty|factor model|equity premium)\\b"
+    - "(?is)\\b(systemic risk|financial stability|stress test|liquidity|intermediation|ALM|insurer(s)?|reinsurer(s)?)\\b"
+    - "(?is)\\b(climate finance|transition risk|carbon exposure|cost of capital|stranded asset)\\b"
+
+# =========================
+# Policies (top1 pick becomes easier)
+# =========================
+L1_POLICY:
+  min_score: 1
+  min_gap: 0
+
+L2_POLICY:
+  min_score: 1
+  min_gap: 0
+
+# =========================
+# L2 Rules (existing)
+# =========================
 L2_RULES:
   A. Insurance Demand · Contracts · Market Frictions:
     A1. Insurance demand / purchase behavior (household & corporate):
@@ -57,7 +103,7 @@ L2_RULES:
 
     A3. Market structure, regulation & availability/affordability:
       - "\\b(regulation|rate regulation|solvency|capital requirement|insurance regulation|competition|market power)\\b"
-      - "\\b(insurer (entry|exit)|entry of insurers|insurer exit|availability of insurance|insurance availability|insurance affordability|residual market|uninsurability)\\b"
+      - "\\b(insurer (entry|exit)|entry of insurers|insurer exit|availability of insurance|insurance affordability|residual market|uninsurability)\\b"
 
   B. Claims · Pricing · Reserving:
     B1. Claim frequency/severity & loss prediction (traditional + ML):
@@ -72,7 +118,7 @@ L2_RULES:
   C. Catastrophe · Climate · Reinsurance · ILS:
     C1. Nat-cat & climate extremes:
       - "\\b(catastrophe|nat[- ]?cat|natural disaster|flood(s)?|wildfire(s)?|hurricane(s)?|typhoon(s)?|earthquake(s)?|storm surge|hail)\\b"
-      - "\\b(insured loss(es)?|insurance claims|claim(s)? (frequency|severity)|paid claims|claim payouts|insurance premium(s)?|reinsurance)\\b"
+      - "\\b(insured loss(es)?|insurance claims|claim(s)? (frequency|severity)|paid claims|claim payouts|reinsurance)\\b"
       - "\\b(climate risk|extreme weather|heatwave(s)?|sea level|physical risk|adaptation|mitigation)\\b"
 
     C2. Reinsurance:

@@ -64,26 +64,19 @@ def _best_and_gap(top3: Any) -> Tuple[Optional[str], int, int]:
     return str(best_label), best_score, (best_score - second_score)
 
 
-def _auto_pick_label(r: Dict[str, Any], level: str) -> Tuple[str, str]:
+def _auto_pick_top1(r: Dict[str, Any], level: str, min_score: int = 1) -> Tuple[str, str]:
     """
-    Try to auto-decide final_l{level} based on policy and top3.
-    Returns (picked_label, reason). If cannot, picked_label="".
+    Aggressive auto-pick:
+      - If l{level}_top3 exists, pick top1 as long as its score >= min_score.
+      - If score < min_score, return "" (leave for manual).
     """
-    auto = r.get("auto_meta") or {}
-    policy = auto.get(f"l{level}_policy") or {}
-    min_score = int(policy.get("min_score", 999))
-    min_gap = int(policy.get("min_gap", 999))
-
     top3 = r.get(f"l{level}_top3") or []
     best_label, best_score, gap = _best_and_gap(top3)
-
     if not best_label:
         return "", f"auto_fail(no_l{level}_top3)"
-
-    if best_score >= min_score and gap >= min_gap:
-        return best_label, f"auto_ok(score={best_score},gap={gap},min_score={min_score},min_gap={min_gap})"
-
-    return "", f"auto_fail(score={best_score},gap={gap},min_score={min_score},min_gap={min_gap})"
+    if best_score >= min_score:
+        return best_label, f"auto_ok_top1(score={best_score},gap={gap},min_score={min_score})"
+    return "", f"auto_fail_low(score={best_score},min_score={min_score})"
 
 
 def main() -> None:
@@ -104,24 +97,58 @@ def main() -> None:
             skipped += 1
             continue
 
-        # 1) 사람이 확정했으면 그걸 우선 사용
+        # --- L0 is always used for tree root-level ---
+        final_l0 = (r.get("final_l0") or "").strip() or "Unlabeled"
+
+        # 사람이 확정했으면 우선
         final_l1 = (r.get("final_l1") or "").strip()
         final_l2 = (r.get("final_l2") or "").strip()
+        tags = normalize_tags(r.get("tags"))
 
-        # 2) 사람이 안 했으면 정책기반 자동확정 시도
         auto_reason_l1 = ""
         auto_reason_l2 = ""
 
+        # --- Policy: GENERAL_ECONOMICS stays at L0 (leaf), so L1/L2 are optional ---
+        if final_l0 == "GENERAL_ECONOMICS":
+            # We still allow tags (optional). Keep L1/L2 empty.
+            out = {
+                "paper_id": paper_id,
+                "topic_l0": final_l0,
+                "topic_l1": "",
+                "topic_l2": "",
+                "tags": tags,
+            }
+
+            if paper_id in by_id:
+                cur = by_id[paper_id]
+                if not (cur.get("topic_l0") or "").strip():
+                    cur["topic_l0"] = final_l0
+                # do not fill L1/L2 for GENERAL_ECONOMICS
+                if tags:
+                    cur_tags = normalize_tags(cur.get("tags"))
+                    cur["tags"] = sorted(set(cur_tags) | set(tags))
+                updated += 1
+            else:
+                by_id[paper_id] = out
+                added += 1
+
+            # count as committed (manual if user set final_l1; otherwise auto-ish)
+            if (r.get("final_l1") or "").strip():
+                manual_committed += 1
+            else:
+                auto_committed += 1
+            continue
+
+        # --- INSURANCE_RISK path: must have L1 for tree expansion (but we will auto-pick top1) ---
         if not final_l1:
-            final_l1, auto_reason_l1 = _auto_pick_label(r, "1")
+            # aggressive: pick top1 even if score <4; require score>=1 to avoid pure noise
+            final_l1, auto_reason_l1 = _auto_pick_top1(r, "1", min_score=1)
 
         if final_l1 and not final_l2:
-            # L2는 L1이 확정된 뒤에만 자동확정 시도
-            final_l2, auto_reason_l2 = _auto_pick_label(r, "2")
+            # L2 auto-pick top1 too (score>=1)
+            final_l2, auto_reason_l2 = _auto_pick_top1(r, "2", min_score=1)
 
-        tags = normalize_tags(r.get("tags"))
-
-        # commit 조건: L1이 있어야 함 (사람이든 자동이든)
+        # If still no L1, leave for manual review
         if not final_l1:
             skipped += 1
             continue
@@ -134,6 +161,7 @@ def main() -> None:
 
         out = {
             "paper_id": paper_id,
+            "topic_l0": final_l0,
             "topic_l1": final_l1,
             "topic_l2": final_l2,
             "tags": tags,
@@ -143,6 +171,9 @@ def main() -> None:
             cur = by_id[paper_id]
 
             # fill-only (사람 수정값 보호)
+            if not (cur.get("topic_l0") or "").strip():
+                cur["topic_l0"] = final_l0
+
             if not (cur.get("topic_l1") or "").strip():
                 cur["topic_l1"] = final_l1
 
@@ -162,7 +193,7 @@ def main() -> None:
     write_jsonl(LABELS_PATH, merged)
 
     print(f"Wrote: {LABELS_PATH}")
-    print(f"Added: {added}, Updated: {updated}, Skipped(no L1): {skipped}")
+    print(f"Added: {added}, Updated: {updated}, Skipped(no INSURANCE L1): {skipped}")
     print(f"Committed(auto): {auto_committed}, Committed(manual): {manual_committed}")
 
 
