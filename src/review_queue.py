@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from src.weak_label import recommend_l1, recommend_l2
+from src.weak_label import recommend_l0, recommend_l1, recommend_l2
 
 ROOT = Path(__file__).resolve().parents[1]
 PAPERS_PATH = ROOT / "data" / "papers.jsonl"
@@ -15,6 +15,9 @@ OUT_PATH = ROOT / "labels" / "review_queue.jsonl"
 # ---------------------------
 # Semi-auto policy (tweak!)
 # ---------------------------
+AUTO_L0_MIN_SCORE = 4
+AUTO_L0_MIN_GAP = 2
+
 AUTO_L1_MIN_SCORE = 4
 AUTO_L1_MIN_GAP = 2
 
@@ -99,25 +102,47 @@ def main() -> None:
         paper_id = p.get("paper_id", "")
         title = (p.get("metadata", {}) or {}).get("title", "")
 
-        # L1
-        l1_top3, evidence_l1 = recommend_l1(p)
-        final_l1, l1_reason = decide_auto(l1_top3, AUTO_L1_MIN_SCORE, AUTO_L1_MIN_GAP)
+        # ---------------------------
+        # L0 (INSURANCE_RISK vs GENERAL_ECONOMICS)
+        # ---------------------------
+        l0_top3, evidence_l0 = recommend_l0(p)
+        final_l0, l0_reason = decide_auto(l0_top3, AUTO_L0_MIN_SCORE, AUTO_L0_MIN_GAP)
 
-        # L2 (only if L1 is confident)
-        l2_top3 = []
-        evidence_l2 = {}
-        final_l2 = ""
-        l2_reason = "skipped(no_final_l1)"
+        # ---------------------------
+        # L1/L2 only if INSURANCE_RISK is chosen
+        # ---------------------------
+        l1_top3, evidence_l1 = [], {}
+        final_l1, l1_reason = "", "skipped(no_final_l0)"
 
-        if final_l1:
-            l2_top3, evidence_l2 = recommend_l2(p, final_l1)
-            final_l2, l2_reason = decide_auto(l2_top3, AUTO_L2_MIN_SCORE, AUTO_L2_MIN_GAP)
+        l2_top3, evidence_l2 = [], {}
+        final_l2, l2_reason = "", "skipped(no_final_l1)"
+
+        if final_l0 == "INSURANCE_RISK":
+            l1_top3, evidence_l1 = recommend_l1(p)
+            final_l1, l1_reason = decide_auto(l1_top3, AUTO_L1_MIN_SCORE, AUTO_L1_MIN_GAP)
+
+            if final_l1:
+                l2_top3, evidence_l2 = recommend_l2(p, final_l1)
+                final_l2, l2_reason = decide_auto(l2_top3, AUTO_L2_MIN_SCORE, AUTO_L2_MIN_GAP)
+            else:
+                l2_reason = "skipped(no_final_l1)"
+        elif final_l0 == "GENERAL_ECONOMICS":
+            l1_reason = "skipped(general_economics)"
+            l2_reason = "skipped(general_economics)"
+        else:
+            # final_l0 == "" : manual L0 needed
+            l1_reason = "skipped(manual_l0_needed)"
+            l2_reason = "skipped(manual_l0_needed)"
 
         tags = safe_tag_heuristics(title) if AUTO_FILL_TAGS else []
 
         out_rows.append({
             "paper_id": paper_id,
             "title": title,
+
+            # candidates + evidence
+            "l0_top3": l0_top3,
+            "evidence_l0": evidence_l0,
 
             "l1_top3": l1_top3,
             "evidence_l1": evidence_l1,
@@ -126,13 +151,16 @@ def main() -> None:
             "evidence_l2": evidence_l2,
 
             # semi-auto outputs
+            "final_l0": final_l0,
             "final_l1": final_l1,
             "final_l2": final_l2,
             "tags": tags,
 
             "auto_meta": {
+                "l0_policy": {"min_score": AUTO_L0_MIN_SCORE, "min_gap": AUTO_L0_MIN_GAP},
                 "l1_policy": {"min_score": AUTO_L1_MIN_SCORE, "min_gap": AUTO_L1_MIN_GAP},
                 "l2_policy": {"min_score": AUTO_L2_MIN_SCORE, "min_gap": AUTO_L2_MIN_GAP},
+                "l0_reason": l0_reason,
                 "l1_reason": l1_reason,
                 "l2_reason": l2_reason
             }
