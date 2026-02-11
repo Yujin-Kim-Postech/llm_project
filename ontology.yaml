@@ -38,34 +38,10 @@ L2:
 # --- add to ontology.yaml ---
 
 L0_RULES:
-  # Decision rule:
-  # 1) If any INSURANCE_RISK pattern matches -> INSURANCE_RISK
-  # 2) Else -> GENERAL_ECONOMICS
-  #
-  # NOTE: Apply on FULL_TEXT = title + abstract + keywords
-
   INSURANCE_RISK:
-    # Core insurance / insurance-market language
-    - "\\b(insur(e|ance|er|ers|ing)|reinsur(e|ance|er|ers|ing)|policy(ies)?|premium(s)?|coverage|deductible(s)?|claim(s)?|loss(es)?|insured|underwrit(ing|er|ers)|actuarial|actuary|ratemak(ing|er)|reserving|ibnr)\\b"
-
-    # Insurance-linked securities / cat risk / nat-cat
-    - "\\b(catastroph(e|ic)|nat[- ]?cat|natural disaster|flood(s)?|wildfire(s)?|hurricane(s)?|typhoon(s)?|earthquake(s)?|storm surge|hail|cat bond(s)?|catastrophe bond(s)?|ILS\\b|insurance[- ]linked|parametric|index trigger|indemnity trigger|modeled loss|basis risk|retrocession)\\b"
-
-    # Operational risk / Basel language (often banking+insurance risk management)
-    - "\\b(operational risk|op risk|basel(\\s?ii|\\s?iii|\\s?iv)?|ama\\b|sma\\b|loss event(s)?|internal loss data|loss distribution approach|lda\\b|scenario analysis|rcsa|risk control self assessment)\\b"
-
-    # Cyber risk / cyber insurance (keep cyber insurance as strong signal)
-    - "\\b(cyber insurance|cyber risk|data breach|ransomware|systemic cyber|accumulation risk)\\b"
-
-    # Annuity / pension / long-term care insurance signals
-    - "\\b(annuit(y|ies)|life insurance|health insurance|long[- ]?term care insurance|ltc insurance|critical illness insurance|pension(s)?|retirement plan(s)?)\\b"
-
-    # Regulation words that are particularly insurance-specific (avoid catching all “regulation”)
-    - "\\b(insurance regulation|rate regulation|solvency(\\s?(ii|2))?|capital requirement(s)?\\s?(for\\s)?(insurer(s)?|insurance)|residual market|uninsurab(le|ility)|guaranty fund|policyholder)\\b"
-
+    - "(?is)\\binsurance\\b|\\breinsurance\\b|\\bunderwriting\\b|\\bactuar(ial|y)\\b|\\bclaim(s)?\\b|\\bpremium(s)?\\b"
   GENERAL_ECONOMICS:
-    # Fallback (no regex needed if you implement rule 2 as default)
-    - "DEFAULT_IF_NO_INSURANCE_MATCH"
+    - "(?is)\\bmacroeconom(ics|y)\\b|\\bmonetary\\b|\\bfiscal\\b|\\bgdp\\b|\\binflation\\b|\\bunemployment\\b|\\btrade\\b|\\bindustrial organization\\b"
 
 
 L2_RULES:
