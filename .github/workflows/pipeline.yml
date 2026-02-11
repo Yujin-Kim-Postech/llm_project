@@ -103,3 +103,23 @@ jobs:
           git add labels/review_queue.jsonl labels/paper_labels.jsonl tree.json || true
           git commit -m "Update review queue, labels, and tree" || echo "No changes to commit"
           git push
+
+      - name: Commit labels (review_queue -> paper_labels)
+        run: python src/commit_labels.py
+      
+      - name: Commit manual labels (needs_review -> paper_labels)
+        run: python src/commit_needs_review.py
+      
+      - name: Build decision tree (paper_labels -> tree.json)
+        run: python src/build_tree.py
+      
+      - name: Upload outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: labeling_outputs
+          path: |
+            labels/paper_labels.jsonl
+            labels/needs_review.jsonl
+            tree.json
+
+      
