@@ -4,22 +4,30 @@ on:
   push:
     paths:
       - "data/**"
-      - "labels/paper_labels.jsonl"
+      - "labels/**"
       - "ontology.yaml"
       - "src/**"
+      - ".github/workflows/**"
   workflow_dispatch: {}
 
 permissions:
   contents: write
+  pull-requests: write
   issues: write
+
+concurrency:
+  group: literature-tree-main
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout (full history)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,95 +39,175 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyyaml
 
+      # 1) Generate / update review_queue.jsonl from data + ontology
       - name: Run semi-auto labeling (review_queue)
         run: |
           python -m src.review_queue
 
-      - name: Commit reviewed labels into paper_labels (auto-only)
+      # 2) Auto-commit anything commit_labels.py can decide (review_queue -> paper_labels)
+      - name: Commit labels (auto + GENERAL_ECONOMICS leaf)
         run: |
-          python -m src.commit_labels
+          python src/commit_labels.py
 
-      - name: Build tree.json
+      # 3) Build needs_review.jsonl = only items NOT yet "done" in paper_labels
+      - name: Build needs_review.jsonl (only unresolved)
         run: |
-          python -m src.build_tree
+          python - <<'PY'
+          import json
+          from pathlib import Path
 
+          review_path = Path("labels/review_queue.jsonl")
+          labels_path = Path("labels/paper_labels.jsonl")
+          out_path = Path("labels/needs_review.jsonl")
+
+          def read_jsonl(p: Path):
+              if not p.exists():
+                  return []
+              rows = []
+              for line in p.read_text(encoding="utf-8").splitlines():
+                  line = line.strip()
+                  if line:
+                      rows.append(json.loads(line))
+              return rows
+
+          paper_labels = read_jsonl(labels_path)
+          review_rows = read_jsonl(review_path)
+
+          done = set()
+          for r in paper_labels:
+              pid = (r.get("paper_id") or "").strip()
+              if not pid:
+                  continue
+              l0 = (r.get("topic_l0") or "").strip()
+              l1 = (r.get("topic_l1") or "").strip()
+              if l0 == "GENERAL_ECONOMICS":
+                  done.add(pid)
+              elif l0 == "INSURANCE_RISK":
+                  if l1:
+                      done.add(pid)
+
+          needs = []
+          for r in review_rows:
+              pid = (r.get("paper_id") or "").strip()
+              if not pid:
+                  continue
+              if pid in done:
+                  continue
+              needs.append(r)
+
+          out_path.parent.mkdir(parents=True, exist_ok=True)
+          out_path.write_text(
+              "\n".join(json.dumps(x, ensure_ascii=False) for x in needs) + ("\n" if needs else ""),
+              encoding="utf-8",
+          )
+          print(f"Wrote {out_path} n={len(needs)} (done={len(done)} / review_total={len(review_rows)})")
+          PY
+
+      # 4) If human updated needs_review.jsonl in repo, move those decisions into paper_labels
+      - name: Commit manual labels (needs_review -> paper_labels)
+        run: |
+          if [ -f labels/needs_review.jsonl ]; then
+            python src/commit_needs_review.py
+          else
+            echo "No needs_review.jsonl found. Skipping."
+          fi
+
+      # 5) Build tree.json ONLY from paper_labels.jsonl
+      - name: Build tree.json (paper_labels -> tree.json)
+        run: |
+          python src/build_tree.py
+
+      # 6) Create/Update issue for items needing review (from needs_review.jsonl)
       - name: Create/Update issue for items needing human review
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python - << 'PY'
-          import json, os, subprocess, textwrap
+          python - <<'PY'
+          import json, subprocess
           from pathlib import Path
 
-          rq = Path("labels/review_queue.jsonl")
-          if not rq.exists():
-              print("No review_queue.jsonl found")
-              raise SystemExit(0)
+          need_path = Path("labels/needs_review.jsonl")
+          title = "Literature Tree: Human review needed"
 
           need = []
-          for line in rq.read_text(encoding="utf-8").splitlines():
-              if not line.strip():
-                  continue
-              obj = json.loads(line)
-              if not (obj.get("final_l1") or "").strip():
-                  need.append(obj)
+          if need_path.exists():
+              for line in need_path.read_text(encoding="utf-8").splitlines():
+                  line = line.strip()
+                  if not line:
+                      continue
+                  try:
+                      need.append(json.loads(line))
+                  except Exception:
+                      pass
 
-          title = "Literature Tree: Human review needed"
           if not need:
-              body = "✅ No items need human review. (All final_l1 are filled by semi-auto policy.)"
+              body = "✅ No items need human review. (needs_review.jsonl is empty)"
           else:
               lines = []
-              lines.append(f"⚠️ {len(need)} papers need human labeling (final_l1/final_l2).")
+              lines.append(f"⚠️ {len(need)} papers need human labeling (fill final_l1/final_l2 in labels/needs_review.jsonl).")
               lines.append("")
               for o in need[:50]:
-                  lines.append(f"- {o.get('paper_id')} — {o.get('title')}")
+                  pid = o.get("paper_id")
+                  title_ = (o.get("metadata") or {}).get("title") or o.get("title") or ""
+                  lines.append(f"- {pid} — {title_}")
                   lines.append(f"  - l1_top3: {o.get('l1_top3')}")
+                  lines.append(f"  - l2_top3: {o.get('l2_top3')}")
               if len(need) > 50:
                   lines.append("")
                   lines.append(f"... and {len(need)-50} more.")
               lines.append("")
               lines.append("How to fix:")
-              lines.append("1) Edit labels/paper_labels.jsonl (or fill final_* in labels/review_queue.jsonl locally)")
-              lines.append("2) Push changes → workflow will rebuild tree.json")
+              lines.append("1) Edit labels/needs_review.jsonl: set final_l1 (and optionally final_l2, tags).")
+              lines.append("2) Commit & push.")
+              lines.append("3) Workflow reruns → moves those rows into labels/paper_labels.jsonl and rebuilds tree.json.")
               body = "\n".join(lines)
 
-          # Find existing issue
-          cmd = ["gh","issue","list","--search",f'in:title "{title}"',"--json","number,title","--limit","5"]
-          res = subprocess.check_output(cmd, text=True)
-          issues = json.loads(res)
+          cmd = ["gh", "issue", "list", "--search", f'in:title \"{title}\"', "--json", "number,title", "--limit", "5"]
+          issues = json.loads(subprocess.check_output(cmd, text=True))
+
           if issues:
               num = issues[0]["number"]
-              subprocess.check_call(["gh","issue","edit",str(num),"--title",title,"--body",body])
+              subprocess.check_call(["gh", "issue", "edit", str(num), "--title", title, "--body", body])
               print(f"Updated issue #{num}")
           else:
-              subprocess.check_call(["gh","issue","create","--title",title,"--body",body])
+              subprocess.check_call(["gh", "issue", "create", "--title", title, "--body", body])
               print("Created issue")
           PY
 
-      - name: Commit updated artifacts (tree + labels)
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add labels/review_queue.jsonl labels/paper_labels.jsonl tree.json || true
-          git commit -m "Update review queue, labels, and tree" || echo "No changes to commit"
-          git push
-
-      - name: Commit labels (review_queue -> paper_labels)
-        run: python src/commit_labels.py
-      
-      - name: Commit manual labels (needs_review -> paper_labels)
-        run: python src/commit_needs_review.py
-      
-      - name: Build decision tree (paper_labels -> tree.json)
-        run: python src/build_tree.py
-      
+      # 7) Upload outputs as artifact (always)
       - name: Upload outputs
         uses: actions/upload-artifact@v4
         with:
           name: labeling_outputs
           path: |
+            labels/review_queue.jsonl
             labels/paper_labels.jsonl
             labels/needs_review.jsonl
             tree.json
 
-      
+      # 8) Push changes back to repo via PR (safe)
+      - name: Create PR with updated labels/tree (if changed)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add labels/review_queue.jsonl labels/paper_labels.jsonl labels/needs_review.jsonl tree.json || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          BRANCH="auto/labels-tree-${{ github.run_id }}"
+          git checkout -b "$BRANCH"
+          git commit -m "Update review queue, labels, needs_review, and tree"
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --title "Auto-update labels/tree (run ${{ github.run_id }})" \
+            --body "Generated by GitHub Actions. Review and merge to update main." \
+            --base main \
+            --head "$BRANCH"
