@@ -4,166 +4,149 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Mapping
 
 from src.weak_label import recommend_l0, recommend_l1, recommend_l2
+from src.ontology import POLICIES
 
 ROOT = Path(__file__).resolve().parents[1]
-PAPERS_PATH = ROOT / "data" / "papers.jsonl"
-OUT_PATH = ROOT / "labels" / "review_queue.jsonl"
 
 
-# ---------------------------
-# Semi-auto policy (tweak!)
-# ---------------------------
-AUTO_L0_MIN_SCORE = 2
-AUTO_L0_MIN_GAP = 1
+DEFAULT_POLICY = {
+    "l0_policy": {"min_score": 1, "min_gap": 1},  # ✅ 여기서 L0 min_score=1 적용
+    "l1_policy": {"min_score": 4, "min_gap": 2},
+    "l2_policy": {"min_score": 4, "min_gap": 2},
+}
 
-AUTO_L1_MIN_SCORE = 4
-AUTO_L1_MIN_GAP = 2
+# Allow ontology.yaml to override policy if present
+POLICY = {
+    "l0_policy": dict(DEFAULT_POLICY["l0_policy"]),
+    "l1_policy": dict(DEFAULT_POLICY["l1_policy"]),
+    "l2_policy": dict(DEFAULT_POLICY["l2_policy"]),
+}
+if isinstance(POLICIES, dict):
+    for k in ("l0_policy", "l1_policy", "l2_policy"):
+        if isinstance(POLICIES.get(k), dict):
+            POLICY[k].update(POLICIES[k])
 
-AUTO_L2_MIN_SCORE = 4
-AUTO_L2_MIN_GAP = 2
 
-AUTO_FILL_TAGS = True
+AI_TAG_RE = re.compile(
+    r"(?is)\bai\b|artificial intelligence|machine learning|deep learning|neural network|large language model|llm"
+)
 
 
-def read_jsonl(path: Path) -> List[Dict[str, Any]]:
-    if not path.exists():
-        return []
-    rows = []
-    with path.open("r", encoding="utf-8") as f:
+def safe_tag_heuristics(p: Mapping[str, Any]) -> List[str]:
+    """
+    Conservative tagger. Avoids false positives from 'ai' appearing inside words.
+    """
+    tags: List[str] = []
+    title = str(p.get("title") or "")
+    text = title
+
+    raw = p.get("raw_text") or {}
+    if isinstance(raw, dict):
+        text += "\n" + str(raw.get("abstract") or "")
+        text += "\n" + str(raw.get("keywords_text") or "")
+
+    t = text.strip()
+    if AI_TAG_RE.search(t):
+        tags.append("ai")
+
+    # keep your existing custom tags if you had any (example placeholders)
+    # if re.search(r"(?is)\bcyber\b|\bsecurity\b", t):
+    #     tags.append("cyber-risk")
+
+    return tags
+
+
+def _decision(top3: List[List[Any]] | List[tuple], min_score: int, min_gap: int) -> tuple[bool, int, int]:
+    """
+    Return (auto_ok, best_score, gap). Assumes top3 sorted.
+    """
+    if not top3:
+        return (False, 0, 0)
+    best = int(top3[0][1])
+    second = int(top3[1][1]) if len(top3) > 1 else 0
+    gap = best - second
+    auto_ok = (best >= min_score) and (gap >= min_gap)
+    return (auto_ok, best, gap)
+
+
+def process_paper(p: Dict[str, Any]) -> Dict[str, Any]:
+    # 1) L0
+    r0 = recommend_l0(p)
+    p["l0_top3"] = r0.top3
+    p["evidence_l0"] = r0.evidence
+
+    l0_ok, l0_best, l0_gap = _decision(p["l0_top3"], **POLICY["l0_policy"])
+    if l0_ok:
+        p["final_l0"] = p["l0_top3"][0][0]
+        p["auto_meta"] = p.get("auto_meta") or {}
+        p["auto_meta"]["l0_policy"] = POLICY["l0_policy"]
+        p["auto_meta"]["l0_reason"] = f"auto(score={l0_best},gap={l0_gap})"
+    else:
+        p["final_l0"] = ""
+        p["auto_meta"] = p.get("auto_meta") or {}
+        p["auto_meta"]["l0_policy"] = POLICY["l0_policy"]
+        p["auto_meta"]["l0_reason"] = f"manual_needed(score={l0_best},gap={l0_gap})"
+        # still attach tags
+        p["tags"] = list(dict.fromkeys((p.get("tags") or []) + safe_tag_heuristics(p)))
+        # do not proceed to L1/L2 if L0 not fixed
+        p["l1_top3"], p["evidence_l1"] = [], {}
+        p["l2_top3"], p["evidence_l2"] = [], {}
+        p["final_l1"], p["final_l2"] = "", ""
+        p["auto_meta"]["l1_reason"] = "skipped(manual_l0_needed)"
+        p["auto_meta"]["l2_reason"] = "skipped(no_final_l1)"
+        return p
+
+    # 2) L1
+    r1 = recommend_l1(p, final_l0=p["final_l0"])
+    p["l1_top3"] = r1.top3
+    p["evidence_l1"] = r1.evidence
+
+    l1_ok, l1_best, l1_gap = _decision(p["l1_top3"], **POLICY["l1_policy"])
+    if l1_ok:
+        p["final_l1"] = p["l1_top3"][0][0]
+        p["auto_meta"]["l1_policy"] = POLICY["l1_policy"]
+        p["auto_meta"]["l1_reason"] = f"auto(score={l1_best},gap={l1_gap})"
+    else:
+        p["final_l1"] = ""
+        p["auto_meta"]["l1_policy"] = POLICY["l1_policy"]
+        p["auto_meta"]["l1_reason"] = f"manual_needed(score={l1_best},gap={l1_gap})"
+
+    # 3) L2 (only if final_l1 exists)
+    if p["final_l1"]:
+        r2 = recommend_l2(p, final_l1=p["final_l1"])
+        p["l2_top3"] = r2.top3
+        p["evidence_l2"] = r2.evidence
+
+        l2_ok, l2_best, l2_gap = _decision(p["l2_top3"], **POLICY["l2_policy"])
+        if l2_ok:
+            p["final_l2"] = p["l2_top3"][0][0]
+            p["auto_meta"]["l2_policy"] = POLICY["l2_policy"]
+            p["auto_meta"]["l2_reason"] = f"auto(score={l2_best},gap={l2_gap})"
+        else:
+            p["final_l2"] = ""
+            p["auto_meta"]["l2_policy"] = POLICY["l2_policy"]
+            p["auto_meta"]["l2_reason"] = f"manual_needed(score={l2_best},gap={l2_gap})"
+    else:
+        p["l2_top3"], p["evidence_l2"] = [], {}
+        p["final_l2"] = ""
+        p["auto_meta"]["l2_reason"] = "skipped(no_final_l1)"
+
+    # tags
+    p["tags"] = list(dict.fromkeys((p.get("tags") or []) + safe_tag_heuristics(p)))
+    return p
+
+
+def run(in_jsonl: Path, out_jsonl: Path) -> None:
+    out_lines: List[str] = []
+    with in_jsonl.open("r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            rows.append(json.loads(line))
-    return rows
-
-
-def write_jsonl(path: Path, rows: List[Dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
-
-
-def safe_tag_heuristics(title: str) -> List[str]:
-    """
-    Conservative title-only tags.
-    Fix: avoid `"ai" in t` substring false positives (e.g., 'against', 'certain').
-    """
-    t = (title or "").lower()
-    tags: List[str] = []
-
-    def has(pat: str) -> bool:
-        return re.search(pat, t) is not None
-
-    # climate / nat-cat
-    if has(r"\b(natural disaster|catastroph(e|ic)|hurricane|typhoon|flood|wildfire|earthquake|storm surge|hail)\b"):
-        tags += ["natural-disaster"]
-    if has(r"\bclimate\b") or has(r"\bextreme weather\b"):
-        tags += ["climate-risk"]
-
-    # cyber
-    if has(r"\bcyber\b") or has(r"\bransomware\b") or has(r"\bdata breach\b"):
-        tags += ["cyber-risk"]
-
-    # AI / ML (word-boundary safe)
-    if has(r"\bai\b") or has(r"\bartificial intelligence\b") or has(r"\bmachine learning\b") or has(r"\bllm\b") or has(r"\blarge language model(s)?\b"):
-        tags += ["ai"]
-
-    # LTC / pension
-    if has(r"\blong[- ]term care\b") or has(r"\bltc\b"):
-        tags += ["long-term-care"]
-    if has(r"\bpension\b") or has(r"\bannuit(y|ies)\b") or has(r"\bretirement\b"):
-        tags += ["pension"]
-
-    out: List[str] = []
-    for x in tags:
-        if x not in out:
-            out.append(x)
-    return out
-
-
-def decide_auto(topk_list: List[Tuple[str, int]], min_score: int, min_gap: int) -> Tuple[str, str]:
-    """
-    Return (final_label, reason) where final_label="" if not confident.
-    """
-    if not topk_list:
-        return "", "no_candidates"
-
-    top1_label, top1_score = topk_list[0]
-    top2_score = topk_list[1][1] if len(topk_list) > 1 else 0
-    gap = top1_score - top2_score
-
-    if top1_score >= min_score and gap >= min_gap:
-        return top1_label, f"auto(score={top1_score},gap={gap})"
-    return "", f"manual_needed(score={top1_score},gap={gap})"
-
-
-def main() -> None:
-    papers = read_jsonl(PAPERS_PATH)
-    out_rows = []
-
-    for p in papers:
-        paper_id = p.get("paper_id", "")
-        title = (p.get("metadata", {}) or {}).get("title", p.get("title", ""))
-
-        # L0
-        l0_top2, evidence_l0 = recommend_l0(p, k=2)
-        final_l0, l0_reason = decide_auto(l0_top2, AUTO_L0_MIN_SCORE, AUTO_L0_MIN_GAP)
-
-        # L1 (only if L0 is confident; else skip)
-        l1_top3: List[Tuple[str, int]] = []
-        evidence_l1: Dict[str, List[str]] = {}
-        final_l1 = ""
-        l1_reason = "skipped(manual_l0_needed)"
-
-        if final_l0:
-            l1_top3, evidence_l1 = recommend_l1(p, l0=final_l0, k=3)
-            final_l1, l1_reason = decide_auto(l1_top3, AUTO_L1_MIN_SCORE, AUTO_L1_MIN_GAP)
-
-        # L2 (only if L1 is confident)
-        l2_top3: List[Tuple[str, int]] = []
-        evidence_l2: Dict[str, List[str]] = {}
-        final_l2 = ""
-        l2_reason = "skipped(no_final_l1)"
-
-        if final_l1:
-            l2_top3, evidence_l2 = recommend_l2(p, final_l1, k=3)
-            final_l2, l2_reason = decide_auto(l2_top3, AUTO_L2_MIN_SCORE, AUTO_L2_MIN_GAP)
-
-        tags = safe_tag_heuristics(title) if AUTO_FILL_TAGS else []
-
-        out_rows.append(
-            {
-                "paper_id": paper_id,
-                "title": title,
-                "l0_top3": l0_top2,
-                "evidence_l0": evidence_l0,
-                "l1_top3": l1_top3,
-                "evidence_l1": evidence_l1,
-                "l2_top3": l2_top3,
-                "evidence_l2": evidence_l2,
-                "final_l0": final_l0,
-                "final_l1": final_l1,
-                "final_l2": final_l2,
-                "tags": tags,
-                "auto_meta": {
-                    "l0_policy": {"min_score": AUTO_L0_MIN_SCORE, "min_gap": AUTO_L0_MIN_GAP},
-                    "l1_policy": {"min_score": AUTO_L1_MIN_SCORE, "min_gap": AUTO_L1_MIN_GAP},
-                    "l2_policy": {"min_score": AUTO_L2_MIN_SCORE, "min_gap": AUTO_L2_MIN_GAP},
-                    "l0_reason": l0_reason,
-                    "l1_reason": l1_reason,
-                    "l2_reason": l2_reason,
-                },
-            }
-        )
-
-    write_jsonl(OUT_PATH, out_rows)
-    print(f"Wrote: {OUT_PATH}")
-
-
-if __name__ == "__main__":
-    main()
+            p = json.loads(line)
+            p2 = process_paper(p)
+            out_lines.append(json.dumps(p2, ensure_ascii=False))
+    out_jsonl.write_text("\n".join(out_lines) + "\n", encoding="utf-8")
