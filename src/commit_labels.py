@@ -2,8 +2,8 @@
 import json, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-INP = ROOT / "papers.jsonl"
-OUT = ROOT / "papers_committed.jsonl"
+INP = ROOT / "data" / "papers.jsonl"
+OUT = ROOT / "data" / "papers_committed.jsonl"
 
 
 def merge_labels(p):
