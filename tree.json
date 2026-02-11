@@ -2,350 +2,380 @@
   "name": "ROOT",
   "children": [
     {
-      "name": "A1",
+      "name": "A",
       "children": [
         {
-          "name": "a",
-          "value": 7,
-          "paper_ids": [
-            "doi:10.1111/jori.12505",
-            "doi:10.1111/jori.70001",
-            "doi:10.1111/jori.70005",
-            "doi:10.1111/jori.70006",
-            "doi:10.1111/jori.70008",
-            "doi:10.1111/jori.70014",
-            "doi:10.1111/jori.70032"
-          ],
-          "papers": [
+          "name": "A1",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.70005",
-              "title": "Demand for life annuities, critical illness insurance, and long-term care insurance"
+              "name": "a",
+              "value": 7,
+              "paper_ids": [
+                "doi:10.1111/jori.12505",
+                "doi:10.1111/jori.70001",
+                "doi:10.1111/jori.70005",
+                "doi:10.1111/jori.70006",
+                "doi:10.1111/jori.70008",
+                "doi:10.1111/jori.70014",
+                "doi:10.1111/jori.70032"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.70005",
+                  "title": "Demand for life annuities, critical illness insurance, and long-term care insurance"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70008",
+                  "title": "Financial regret at older ages and longevity awareness"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70006",
+                  "title": "Housing wealth and long‐term care insurance demand: Survey evidence"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70014",
+                  "title": "Optimal retirement with long‐run income risk"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12505",
+                  "title": "Registered index-linked annuities in qualified retirement plans"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70001",
+                  "title": "Spatio-temporal risk sharing and transfer: A unified theory of multi-period decentralized insurances and annuities"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70032",
+                  "title": "The role of the health effect in estimating the willingness to pay for long-term care insurance"
+                }
+              ]
             },
             {
-              "paper_id": "doi:10.1111/jori.70008",
-              "title": "Financial regret at older ages and longevity awareness"
+              "name": "b",
+              "value": 2,
+              "paper_ids": [
+                "doi:10.1111/jori.70020",
+                "doi:10.1111/jori.70026"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.70020",
+                  "title": "Firm learning in a selection market"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70026",
+                  "title": "Heterogeneity in health insurance choice: An experimental investigation of consumer choice and feature preferences"
+                }
+              ]
             },
             {
-              "paper_id": "doi:10.1111/jori.70006",
-              "title": "Housing wealth and long‐term care insurance demand: Survey evidence"
-            },
+              "name": "c",
+              "value": 2,
+              "paper_ids": [
+                "doi:10.1111/jori.70012",
+                "doi:10.1111/jori.70015"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.70015",
+                  "title": "Basis risk, social comparison, perceptions of fairness, and demand for insurance: A field experiment in Ethiopia"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70012",
+                  "title": "Welfare consequences of the compound risks of index insurance"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "B",
+      "children": [
+        {
+          "name": "B1",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.70014",
-              "title": "Optimal retirement with long‐run income risk"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12505",
-              "title": "Registered index-linked annuities in qualified retirement plans"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70001",
-              "title": "Spatio-temporal risk sharing and transfer: A unified theory of multi-period decentralized insurances and annuities"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70032",
-              "title": "The role of the health effect in estimating the willingness to pay for long-term care insurance"
+              "name": "Unlabeled",
+              "value": 1,
+              "paper_ids": [
+                "doi:10.1111/jori.70033"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.70033",
+                  "title": "Ship insurance in the era of AI: An intelligent risk profiling system under the POM principles"
+                }
+              ]
             }
           ]
         },
         {
-          "name": "b",
-          "value": 2,
-          "paper_ids": [
-            "doi:10.1111/jori.70020",
-            "doi:10.1111/jori.70026"
-          ],
-          "papers": [
+          "name": "B3",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.70020",
-              "title": "Firm learning in a selection market"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70026",
-              "title": "Heterogeneity in health insurance choice: An experimental investigation of consumer choice and feature preferences"
+              "name": "Unlabeled",
+              "value": 2,
+              "paper_ids": [
+                "doi:10.1111/jori.70004",
+                "doi:10.1111/jori.70010"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.70004",
+                  "title": "Textual analysis of insurance claims with large language models"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70010",
+                  "title": "Unresolved conflict in workers' compensation: The impact of legal representation on workers' compensation benefits"
+                }
+              ]
             }
           ]
         },
         {
-          "name": "c",
-          "value": 2,
-          "paper_ids": [
-            "doi:10.1111/jori.70012",
-            "doi:10.1111/jori.70015"
-          ],
-          "papers": [
+          "name": "B4",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.70015",
-              "title": "Basis risk, social comparison, perceptions of fairness, and demand for insurance: A field experiment in Ethiopia"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70012",
-              "title": "Welfare consequences of the compound risks of index insurance"
+              "name": "Unlabeled",
+              "value": 3,
+              "paper_ids": [
+                "doi:10.1111/jori.12503",
+                "doi:10.1111/jori.70016",
+                "doi:10.1111/jori.70029"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.12503",
+                  "title": "A fair price to pay: Exploiting causal graphs for fairness in insurance"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70016",
+                  "title": "Optimal insurance design under limited liability"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70029",
+                  "title": "Pollution liability insurance and corporate environmental compliance in China"
+                }
+              ]
             }
           ]
         }
       ]
     },
     {
-      "name": "B1",
+      "name": "C",
       "children": [
         {
-          "name": "Unlabeled",
-          "value": 1,
-          "paper_ids": [
-            "doi:10.1111/jori.70033"
-          ],
-          "papers": [
+          "name": "C1",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.70033",
-              "title": "Ship insurance in the era of AI: An intelligent risk profiling system under the POM principles"
+              "name": "Unlabeled",
+              "value": 3,
+              "paper_ids": [
+                "doi:10.1111/jori.12506",
+                "doi:10.1111/jori.70002",
+                "doi:10.1111/jori.70007"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.12506",
+                  "title": "Catastrophe risk sharing among individuals, private insurance, and government"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70007",
+                  "title": "Community responses to flooding in risk mitigation actions: Evidence from the community rating system"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70002",
+                  "title": "Learning from experience: Flooding and insurance take-up in the flood zone and its periphery"
+                }
+              ]
             }
           ]
         }
       ]
     },
     {
-      "name": "B3",
+      "name": "D",
       "children": [
         {
-          "name": "Unlabeled",
-          "value": 2,
-          "paper_ids": [
-            "doi:10.1111/jori.70004",
-            "doi:10.1111/jori.70010"
-          ],
-          "papers": [
+          "name": "D1",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.70004",
-              "title": "Textual analysis of insurance claims with large language models"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70010",
-              "title": "Unresolved conflict in workers' compensation: The impact of legal representation on workers' compensation benefits"
+              "name": "Unlabeled",
+              "value": 1,
+              "paper_ids": [
+                "doi:10.1111/jori.12504"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.12504",
+                  "title": "Cyber risk assessment for capital management"
+                }
+              ]
             }
           ]
         }
       ]
     },
     {
-      "name": "B4",
+      "name": "E",
       "children": [
         {
-          "name": "Unlabeled",
-          "value": 3,
-          "paper_ids": [
-            "doi:10.1111/jori.12503",
-            "doi:10.1111/jori.70016",
-            "doi:10.1111/jori.70029"
-          ],
-          "papers": [
+          "name": "E1",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.12503",
-              "title": "A fair price to pay: Exploiting causal graphs for fairness in insurance"
-            },
+              "name": "Unlabeled",
+              "value": 1,
+              "paper_ids": [
+                "doi:10.1111/jori.70024"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.70024",
+                  "title": "Optimal hedging of longevity risks for group self-annuity portfolios"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "E2",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.70016",
-              "title": "Optimal insurance design under limited liability"
-            },
+              "name": "Unlabeled",
+              "value": 2,
+              "paper_ids": [
+                "doi:10.1111/jori.70023",
+                "doi:10.1111/jori.70028"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.70028",
+                  "title": "Gambling for market recovery? European insurers' corporate bond investments during market stress"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70023",
+                  "title": "Systemic risk of systemically important financial institutions in the post-2008 global financial crisis era: A tail risk network analysis"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "E3",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.70029",
-              "title": "Pollution liability insurance and corporate environmental compliance in China"
+              "name": "Unlabeled",
+              "value": 2,
+              "paper_ids": [
+                "doi:10.1111/jori.70021",
+                "doi:10.1111/jori.70022"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.70022",
+                  "title": "Extreme-weather risk and the cross-section of stock returns"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70021",
+                  "title": "Wildfire risk and municipal bond yields"
+                }
+              ]
             }
           ]
         }
       ]
     },
     {
-      "name": "C1",
+      "name": "F",
       "children": [
         {
-          "name": "Unlabeled",
-          "value": 3,
-          "paper_ids": [
-            "doi:10.1111/jori.12506",
-            "doi:10.1111/jori.70002",
-            "doi:10.1111/jori.70007"
-          ],
-          "papers": [
+          "name": "F1",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.12506",
-              "title": "Catastrophe risk sharing among individuals, private insurance, and government"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70007",
-              "title": "Community responses to flooding in risk mitigation actions: Evidence from the community rating system"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70002",
-              "title": "Learning from experience: Flooding and insurance take-up in the flood zone and its periphery"
+              "name": "Unlabeled",
+              "value": 1,
+              "paper_ids": [
+                "doi:10.1111/jori.70019"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.70019",
+                  "title": "Market discipline in life insurance: Does public risk disclosure encourage less risky management actions?"
+                }
+              ]
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "D1",
-      "children": [
+        },
         {
-          "name": "Unlabeled",
-          "value": 1,
-          "paper_ids": [
-            "doi:10.1111/jori.12504"
-          ],
-          "papers": [
+          "name": "F2",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.12504",
-              "title": "Cyber risk assessment for capital management"
+              "name": "Unlabeled",
+              "value": 2,
+              "paper_ids": [
+                "doi:10.1111/jori.70003",
+                "doi:10.1111/jori.70025"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.70025",
+                  "title": "On the market valuation of insurance accounting: An assessment of historical cost and fair value measurements"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70003",
+                  "title": "Pension underfunding and the expected return on pension assets: The impact of the 2008 financial crisis"
+                }
+              ]
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "E1",
-      "children": [
+        },
         {
-          "name": "Unlabeled",
-          "value": 1,
-          "paper_ids": [
-            "doi:10.1111/jori.70024"
-          ],
-          "papers": [
+          "name": "F3",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.70024",
-              "title": "Optimal hedging of longevity risks for group self-annuity portfolios"
+              "name": "Unlabeled",
+              "value": 2,
+              "paper_ids": [
+                "doi:10.1111/jori.70009",
+                "doi:10.1111/jori.70013"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.70009",
+                  "title": "Regulating risk culture in the insurance industry using machine learning"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70013",
+                  "title": "Shared exposures or management fashions? Antecedents of convergence in the insurance and banking industries"
+                }
+              ]
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "E2",
-      "children": [
+        },
         {
-          "name": "Unlabeled",
-          "value": 2,
-          "paper_ids": [
-            "doi:10.1111/jori.70023",
-            "doi:10.1111/jori.70028"
-          ],
-          "papers": [
+          "name": "F4",
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.70028",
-              "title": "Gambling for market recovery? European insurers' corporate bond investments during market stress"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70023",
-              "title": "Systemic risk of systemically important financial institutions in the post-2008 global financial crisis era: A tail risk network analysis"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "E3",
-      "children": [
-        {
-          "name": "Unlabeled",
-          "value": 2,
-          "paper_ids": [
-            "doi:10.1111/jori.70021",
-            "doi:10.1111/jori.70022"
-          ],
-          "papers": [
-            {
-              "paper_id": "doi:10.1111/jori.70022",
-              "title": "Extreme-weather risk and the cross-section of stock returns"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70021",
-              "title": "Wildfire risk and municipal bond yields"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "F1",
-      "children": [
-        {
-          "name": "Unlabeled",
-          "value": 1,
-          "paper_ids": [
-            "doi:10.1111/jori.70019"
-          ],
-          "papers": [
-            {
-              "paper_id": "doi:10.1111/jori.70019",
-              "title": "Market discipline in life insurance: Does public risk disclosure encourage less risky management actions?"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "F2",
-      "children": [
-        {
-          "name": "Unlabeled",
-          "value": 2,
-          "paper_ids": [
-            "doi:10.1111/jori.70003",
-            "doi:10.1111/jori.70025"
-          ],
-          "papers": [
-            {
-              "paper_id": "doi:10.1111/jori.70025",
-              "title": "On the market valuation of insurance accounting: An assessment of historical cost and fair value measurements"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70003",
-              "title": "Pension underfunding and the expected return on pension assets: The impact of the 2008 financial crisis"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "F3",
-      "children": [
-        {
-          "name": "Unlabeled",
-          "value": 2,
-          "paper_ids": [
-            "doi:10.1111/jori.70009",
-            "doi:10.1111/jori.70013"
-          ],
-          "papers": [
-            {
-              "paper_id": "doi:10.1111/jori.70009",
-              "title": "Regulating risk culture in the insurance industry using machine learning"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70013",
-              "title": "Shared exposures or management fashions? Antecedents of convergence in the insurance and banking industries"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "F4",
-      "children": [
-        {
-          "name": "Unlabeled",
-          "value": 2,
-          "paper_ids": [
-            "doi:10.1111/jori.12507",
-            "doi:10.1111/jori.70027"
-          ],
-          "papers": [
-            {
-              "paper_id": "doi:10.1111/jori.12507",
-              "title": "Banding together to lower the cost of health care? An empirical study of the Peak Health Alliance in Colorado"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70027",
-              "title": "Virtuous innovation or obfuscation? Product innovation in the variable annuities market"
+              "name": "Unlabeled",
+              "value": 2,
+              "paper_ids": [
+                "doi:10.1111/jori.12507",
+                "doi:10.1111/jori.70027"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.12507",
+                  "title": "Banding together to lower the cost of health care? An empirical study of the Peak Health Alliance in Colorado"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.70027",
+                  "title": "Virtuous innovation or obfuscation? Product innovation in the variable annuities market"
+                }
+              ]
             }
           ]
         }
@@ -356,59 +386,64 @@
       "children": [
         {
           "name": "Unlabeled",
-          "value": 10,
-          "paper_ids": [
-            "doi:10.1111/jori.12458",
-            "doi:10.1111/jori.12459",
-            "doi:10.1111/jori.12460",
-            "doi:10.1111/jori.12461",
-            "doi:10.1111/jori.12468",
-            "doi:10.1111/jori.12471",
-            "doi:10.1111/jori.12472",
-            "doi:10.1111/jori.12473",
-            "doi:10.1111/jori.12495",
-            "doi:10.1111/jori.12498"
-          ],
-          "papers": [
+          "children": [
             {
-              "paper_id": "doi:10.1111/jori.12459",
-              "title": "A behavioral gap in survival beliefs"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12473",
-              "title": "Annuity puzzle: Evidence from a Swiss pension fund"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12458",
-              "title": "Availability of the seat belt defense: Implications for auto liability insurance"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12472",
-              "title": "Insurers' climate change risk management quality and natural disasters"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12498",
-              "title": "Issue Information: Journal of Risk and Insurance, Volume 91, Number 4 (December 2024)"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12461",
-              "title": "More options, more problems? Lost in the health insurance maze"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12460",
-              "title": "Multiperiod peer-to-peer risk sharing"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12468",
-              "title": "Pareto-efficient risk sharing in centralized insurance markets with application to flood risk"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12495",
-              "title": "The economics of emerging insurance technologies: Theory and early evidence"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12471",
-              "title": "The market for model laws: The diffusion of NAIC model laws"
+              "name": "Unlabeled",
+              "value": 10,
+              "paper_ids": [
+                "doi:10.1111/jori.12458",
+                "doi:10.1111/jori.12459",
+                "doi:10.1111/jori.12460",
+                "doi:10.1111/jori.12461",
+                "doi:10.1111/jori.12468",
+                "doi:10.1111/jori.12471",
+                "doi:10.1111/jori.12472",
+                "doi:10.1111/jori.12473",
+                "doi:10.1111/jori.12495",
+                "doi:10.1111/jori.12498"
+              ],
+              "papers": [
+                {
+                  "paper_id": "doi:10.1111/jori.12459",
+                  "title": "A behavioral gap in survival beliefs"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12473",
+                  "title": "Annuity puzzle: Evidence from a Swiss pension fund"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12458",
+                  "title": "Availability of the seat belt defense: Implications for auto liability insurance"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12472",
+                  "title": "Insurers' climate change risk management quality and natural disasters"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12498",
+                  "title": "Issue Information: Journal of Risk and Insurance, Volume 91, Number 4 (December 2024)"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12461",
+                  "title": "More options, more problems? Lost in the health insurance maze"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12460",
+                  "title": "Multiperiod peer-to-peer risk sharing"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12468",
+                  "title": "Pareto-efficient risk sharing in centralized insurance markets with application to flood risk"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12495",
+                  "title": "The economics of emerging insurance technologies: Theory and early evidence"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12471",
+                  "title": "The market for model laws: The diffusion of NAIC model laws"
+                }
+              ]
             }
           ]
         }
