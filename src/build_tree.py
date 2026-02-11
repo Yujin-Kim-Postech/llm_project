@@ -78,6 +78,8 @@ def main():
         lambda: defaultdict(lambda: defaultdict(list))
     )
 
+    SELF_KEY = "__SELF__"  # topicl2 없는 paper를 L1에 붙이기 위한 내부 키
+
     for r in iter_jsonl(papers_path):
         pid = (r.get("paper_id") or "").strip()
         if not pid:
@@ -87,8 +89,13 @@ def main():
 
         meta = r.get("metadata") or {}
         title = meta.get("title") if isinstance(meta, dict) else None
+        paper_obj = {"paper_id": pid, "title": title}
 
-        tree[l0][l1][l2].append({"paper_id": pid, "title": title})
+        # ✅ topicl2가 Unlabeled면 leaf를 만들지 않고 L1에 직접 붙임
+        if l2 == "Unlabeled":
+            tree[l0][l1][SELF_KEY].append(paper_obj)
+        else:
+            tree[l0][l1][l2].append(paper_obj)
 
     # D3-friendly JSON
     d3: Dict[str, Any] = {"name": "ROOT", "children": []}
@@ -109,10 +116,20 @@ def main():
         node_l0 = {"name": l0, "children": []}
 
         for l1 in sorted(tree[l0].keys(), key=_sort_key_label):
+            l2map = tree[l0][l1]
+
+            # ✅ L1에 직접 붙는 paper들(= topicl2 없던 것들)
+            self_papers = l2map.get(SELF_KEY, [])
             node_l1 = {"name": l1, "children": []}
 
-            for l2 in sorted(tree[l0][l1].keys()):
-                papers = tree[l0][l1][l2]
+            if self_papers:
+                node_l1["value"] = len(self_papers)
+                node_l1["paper_ids"] = sorted([p["paper_id"] for p in self_papers])
+                node_l1["papers"] = sorted(self_papers, key=lambda x: (x["title"] or "", x["paper_id"]))
+
+            # ✅ 실제 L2들만 leaf로 생성 (Unlabeled는 애초에 안 만듦)
+            for l2 in sorted([k for k in l2map.keys() if k != SELF_KEY]):
+                papers = l2map[l2]
                 node_l2 = {
                     "name": l2,
                     "value": len(papers),
@@ -124,6 +141,7 @@ def main():
             node_l0["children"].append(node_l1)
 
         d3["children"].append(node_l0)
+
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(d3, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
