@@ -23,17 +23,52 @@ def _norm(x: Optional[str]) -> str:
 
 TOP_RE = re.compile(r"^([A-F])(\d+)?([a-z])?$")  # e.g., A1a, A1, A, F2b
 
+def _first(x: Any) -> Optional[str]:
+    """list면 첫 원소, str이면 그대로, 그 외 None"""
+    if x is None:
+        return None
+    if isinstance(x, str):
+        return x
+    if isinstance(x, list) and x:
+        return str(x[0])
+    return None
+
+
+def get_topic_fields(r: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
+    """
+    Support both schemas:
+        - new: topicl1/topicl2 (string)
+        - old: topic_l1/topic_l2 (list like ["A"], ["A1"])
+    Returns (topicl1, topicl2) as strings or None
+    """
+    t1 = _first(r.get("topicl1"))
+    t2 = _first(r.get("topicl2"))
+
+    if t1 is None and t2 is None:
+        # fallback to old schema
+        old_l1 = _first(r.get("topic_l1"))  # e.g., "A"
+        old_l2 = _first(r.get("topic_l2"))  # e.g., "A1"
+        # 보통 old_l2가 더 정보가 많으니 topicl1에 넣고, topicl2는 비워둠
+        # (A1a 같은 형태가 오면 split_topics가 알아서 처리 가능)
+        if old_l2:
+            t1 = old_l2
+        elif old_l1:
+            t1 = old_l1
+        t2 = None
+
+    return t1, t2
+
 
 def split_topics(topicl1: Optional[str], topicl2: Optional[str]) -> tuple[str, str, str]:
     """
     Returns (L0, L1, L2)
-      L0: A/B/C/D/E/F/Unlabeled
-      L1: A1, B3, ...
-      L2: a/b/c/Unlabeled
+        L0: A/B/C/D/E/F/Unlabeled
+        L1: A1, B3, ...
+        L2: a/b/c/Unlabeled
     Supports:
-      - topicl1="A1", topicl2="a"
-      - topicl1="A1a" (topicl2 missing)
-      - topicl1 missing => Unlabeled
+        - topicl1="A1", topicl2="a"
+        - topicl1="A1a" (topicl2 missing)
+        - topicl1 missing => Unlabeled
     """
     l1_raw = _norm(topicl1)
     l2_raw = _norm(topicl2)
@@ -85,7 +120,9 @@ def main():
         if not pid:
             continue
 
-        l0, l1, l2 = split_topics(r.get("topicl1"), r.get("topicl2"))
+        t1, t2 = get_topic_fields(r)
+        l0, l1, l2 = split_topics(t1, t2)
+
 
         meta = r.get("metadata") or {}
         title = meta.get("title") if isinstance(meta, dict) else None
