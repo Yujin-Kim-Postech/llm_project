@@ -389,17 +389,22 @@
           "children": [
             {
               "name": "Unlabeled",
-              "value": 10,
+              "value": 15,
               "paper_ids": [
                 "doi:10.1111/jori.12458",
                 "doi:10.1111/jori.12459",
                 "doi:10.1111/jori.12460",
                 "doi:10.1111/jori.12461",
                 "doi:10.1111/jori.12468",
+                "doi:10.1111/jori.12469",
                 "doi:10.1111/jori.12471",
                 "doi:10.1111/jori.12472",
                 "doi:10.1111/jori.12473",
+                "doi:10.1111/jori.12480",
+                "doi:10.1111/jori.12492",
+                "doi:10.1111/jori.12493",
                 "doi:10.1111/jori.12495",
+                "doi:10.1111/jori.12497",
                 "doi:10.1111/jori.12498"
               ],
               "papers": [
@@ -416,12 +421,28 @@
                   "title": "Availability of the seat belt defense: Implications for auto liability insurance"
                 },
                 {
+                  "paper_id": "doi:10.1111/jori.12492",
+                  "title": "Children as insurance revisited: Impact of children on private insurance adoption among older parents"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12480",
+                  "title": "Does inequality impede risk management? Evidence from a lab experiment in Ghana"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12469",
+                  "title": "Enterprise risk management and corporate tax planning"
+                },
+                {
                   "paper_id": "doi:10.1111/jori.12472",
                   "title": "Insurers' climate change risk management quality and natural disasters"
                 },
                 {
                   "paper_id": "doi:10.1111/jori.12498",
                   "title": "Issue Information: Journal of Risk and Insurance, Volume 91, Number 4 (December 2024)"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12493",
+                  "title": "Market discipline and government guarantees: Evidence from the insurance industry"
                 },
                 {
                   "paper_id": "doi:10.1111/jori.12461",
@@ -442,6 +463,10 @@
                 {
                   "paper_id": "doi:10.1111/jori.12471",
                   "title": "The market for model laws: The diffusion of NAIC model laws"
+                },
+                {
+                  "paper_id": "doi:10.1111/jori.12497",
+                  "title": "The role of government versus private sector provision of insurance"
                 }
               ]
             }
