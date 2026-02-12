@@ -2,51 +2,23 @@
   "name": "ROOT",
   "children": [
     {
-      "name": "Unlabeled",
+      "name": "A",
       "children": [
         {
-          "name": "Unlabeled",
+          "name": "A1",
           "children": [],
-          "value": 29,
+          "value": 5,
           "paper_ids": [
             "doi:10.1111/jori.12457",
-            "doi:10.1111/jori.12458",
             "doi:10.1111/jori.12459",
-            "doi:10.1111/jori.12460",
-            "doi:10.1111/jori.12461",
-            "doi:10.1111/jori.12465",
-            "doi:10.1111/jori.12466",
-            "doi:10.1111/jori.12468",
-            "doi:10.1111/jori.12469",
-            "doi:10.1111/jori.12470",
-            "doi:10.1111/jori.12471",
             "doi:10.1111/jori.12473",
-            "doi:10.1111/jori.12480",
-            "doi:10.1111/jori.12484",
-            "doi:10.1111/jori.12485",
-            "doi:10.1111/jori.12491",
             "doi:10.1111/jori.12492",
-            "doi:10.1111/jori.12494",
-            "doi:10.1111/jori.12495",
-            "doi:10.1111/jori.12496",
-            "doi:10.1111/jori.12497",
-            "doi:10.1111/jori.12500",
-            "doi:10.1111/jori.12501",
-            "doi:10.1111/jori.12502",
-            "doi:10.1111/jori.12505",
-            "doi:10.1111/jori.70016",
-            "doi:10.1111/jori.70022",
-            "doi:10.1111/jori.70028",
-            "doi:10.1111/jori.70029"
+            "doi:10.1111/jori.12505"
           ],
           "papers": [
             {
               "paper_id": "doi:10.1111/jori.12459",
               "title": "A behavioral gap in survival beliefs"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12501",
-              "title": "Advancing loss reserving: A hybrid neural network approach for individual claim development prediction"
             },
             {
               "paper_id": "doi:10.1111/jori.12473",
@@ -57,32 +29,134 @@
               "title": "Annuity selection in the presence of insurer default risk and government guarantees"
             },
             {
-              "paper_id": "doi:10.1111/jori.12470",
-              "title": "Catastrophe risk in a stochastic multi‐population mortality model"
-            },
-            {
               "paper_id": "doi:10.1111/jori.12492",
               "title": "Children as insurance revisited: Impact of children on private insurance adoption among older parents"
             },
             {
-              "paper_id": "doi:10.1111/jori.12502",
-              "title": "Do higher insurance premiums provoke larger reported losses? An experimental study"
-            },
+              "paper_id": "doi:10.1111/jori.12505",
+              "title": "Registered index-linked annuities in qualified retirement plans"
+            }
+          ]
+        },
+        {
+          "name": "A2",
+          "children": [],
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.12461"
+          ],
+          "papers": [
+            {
+              "paper_id": "doi:10.1111/jori.12461",
+              "title": "More options, more problems? Lost in the health insurance maze"
+            }
+          ]
+        },
+        {
+          "name": "A3",
+          "children": [],
+          "value": 2,
+          "paper_ids": [
+            "doi:10.1111/jori.12480",
+            "doi:10.1111/jori.70016"
+          ],
+          "papers": [
             {
               "paper_id": "doi:10.1111/jori.12480",
               "title": "Does inequality impede risk management? Evidence from a lab experiment in Ghana"
             },
             {
-              "paper_id": "doi:10.1111/jori.12469",
-              "title": "Enterprise risk management and corporate tax planning"
+              "paper_id": "doi:10.1111/jori.70016",
+              "title": "Optimal insurance design under limited liability"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "B",
+      "children": [
+        {
+          "name": "B1",
+          "children": [],
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.12494"
+          ],
+          "papers": [
+            {
+              "paper_id": "doi:10.1111/jori.12494",
+              "title": "Utilizing large‐scale insurance data sets to calibrate sub‐county level crop yields"
+            }
+          ]
+        },
+        {
+          "name": "B2",
+          "children": [],
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.12501"
+          ],
+          "papers": [
+            {
+              "paper_id": "doi:10.1111/jori.12501",
+              "title": "Advancing loss reserving: A hybrid neural network approach for individual claim development prediction"
+            }
+          ]
+        },
+        {
+          "name": "B3",
+          "children": [],
+          "value": 2,
+          "paper_ids": [
+            "doi:10.1111/jori.12465",
+            "doi:10.1111/jori.12502"
+          ],
+          "papers": [
+            {
+              "paper_id": "doi:10.1111/jori.12502",
+              "title": "Do higher insurance premiums provoke larger reported losses? An experimental study"
             },
             {
-              "paper_id": "doi:10.1111/jori.70022",
-              "title": "Extreme-weather risk and the cross-section of stock returns"
-            },
+              "paper_id": "doi:10.1111/jori.12465",
+              "title": "Workers’ moral hazard and private insurer effort in disability insurance"
+            }
+          ]
+        },
+        {
+          "name": "B4",
+          "children": [],
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.12496"
+          ],
+          "papers": [
             {
-              "paper_id": "doi:10.1111/jori.70028",
-              "title": "Gambling for market recovery? European insurers' corporate bond investments during market stress"
+              "paper_id": "doi:10.1111/jori.12496",
+              "title": "The risk screening effect of digital insurance distribution"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "C",
+      "children": [
+        {
+          "name": "C1",
+          "children": [],
+          "value": 5,
+          "paper_ids": [
+            "doi:10.1111/jori.12460",
+            "doi:10.1111/jori.12466",
+            "doi:10.1111/jori.12468",
+            "doi:10.1111/jori.12470",
+            "doi:10.1111/jori.12491"
+          ],
+          "papers": [
+            {
+              "paper_id": "doi:10.1111/jori.12470",
+              "title": "Catastrophe risk in a stochastic multi‐population mortality model"
             },
             {
               "paper_id": "doi:10.1111/jori.12466",
@@ -93,68 +167,145 @@
               "title": "Insurers’ climate change risk management quality and natural disasters"
             },
             {
-              "paper_id": "doi:10.1111/jori.12485",
-              "title": "Loan guarantees and SMEs' investments under asymmetric information and Bayesian learning"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12461",
-              "title": "More options, more problems? Lost in the health insurance maze"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12458",
-              "title": "Multiperiod peer-to-peer risk sharing"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12484",
-              "title": "On the efficiency of insurance institutions under interdependent risks"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70016",
-              "title": "Optimal insurance design under limited liability"
-            },
-            {
               "paper_id": "doi:10.1111/jori.12468",
               "title": "Pareto‐efficient risk sharing in centralized insurance markets with application to flood risk"
             },
             {
-              "paper_id": "doi:10.1111/jori.70029",
-              "title": "Pollution liability insurance and corporate environmental compliance in China"
-            },
+              "paper_id": "doi:10.1111/jori.12491",
+              "title": "The effect of subsidized flood insurance on real estate markets"
+            }
+          ]
+        },
+        {
+          "name": "C3",
+          "children": [],
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.12458"
+          ],
+          "papers": [
             {
-              "paper_id": "doi:10.1111/jori.12505",
-              "title": "Registered index-linked annuities in qualified retirement plans"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12500",
-              "title": "Supplementing risk adjustment with high-risk pooling using historical data for identifying the high risks"
-            },
+              "paper_id": "doi:10.1111/jori.12458",
+              "title": "Multiperiod peer-to-peer risk sharing"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "D",
+      "children": [
+        {
+          "name": "D2",
+          "children": [],
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.12495"
+          ],
+          "papers": [
             {
               "paper_id": "doi:10.1111/jori.12495",
               "title": "The economics of emerging insurance technologies: Theory and early evidence"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "E",
+      "children": [
+        {
+          "name": "E1",
+          "children": [],
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.70022"
+          ],
+          "papers": [
+            {
+              "paper_id": "doi:10.1111/jori.70022",
+              "title": "Extreme-weather risk and the cross-section of stock returns"
+            }
+          ]
+        },
+        {
+          "name": "E2",
+          "children": [],
+          "value": 3,
+          "paper_ids": [
+            "doi:10.1111/jori.12484",
+            "doi:10.1111/jori.12485",
+            "doi:10.1111/jori.70028"
+          ],
+          "papers": [
+            {
+              "paper_id": "doi:10.1111/jori.70028",
+              "title": "Gambling for market recovery? European insurers' corporate bond investments during market stress"
             },
             {
-              "paper_id": "doi:10.1111/jori.12491",
-              "title": "The effect of subsidized flood insurance on real estate markets"
+              "paper_id": "doi:10.1111/jori.12485",
+              "title": "Loan guarantees and SMEs' investments under asymmetric information and Bayesian learning"
+            },
+            {
+              "paper_id": "doi:10.1111/jori.12484",
+              "title": "On the efficiency of insurance institutions under interdependent risks"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "F",
+      "children": [
+        {
+          "name": "F1",
+          "children": [],
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.12500"
+          ],
+          "papers": [
+            {
+              "paper_id": "doi:10.1111/jori.12500",
+              "title": "Supplementing risk adjustment with high-risk pooling using historical data for identifying the high risks"
+            }
+          ]
+        },
+        {
+          "name": "F3",
+          "children": [],
+          "value": 1,
+          "paper_ids": [
+            "doi:10.1111/jori.12469"
+          ],
+          "papers": [
+            {
+              "paper_id": "doi:10.1111/jori.12469",
+              "title": "Enterprise risk management and corporate tax planning"
+            }
+          ]
+        },
+        {
+          "name": "F4",
+          "children": [],
+          "value": 3,
+          "paper_ids": [
+            "doi:10.1111/jori.12471",
+            "doi:10.1111/jori.12497",
+            "doi:10.1111/jori.70029"
+          ],
+          "papers": [
+            {
+              "paper_id": "doi:10.1111/jori.70029",
+              "title": "Pollution liability insurance and corporate environmental compliance in China"
             },
             {
               "paper_id": "doi:10.1111/jori.12471",
               "title": "The market for model laws: The diffusion of NAIC model laws"
             },
             {
-              "paper_id": "doi:10.1111/jori.12496",
-              "title": "The risk screening effect of digital insurance distribution"
-            },
-            {
               "paper_id": "doi:10.1111/jori.12497",
               "title": "The role of government versus private sector provision of insurance"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12494",
-              "title": "Utilizing large‐scale insurance data sets to calibrate sub‐county level crop yields"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12465",
-              "title": "Workers’ moral hazard and private insurer effort in disability insurance"
             }
           ]
         }
