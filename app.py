@@ -24,21 +24,16 @@ def iter_jsonl(path: Path):
                 yield json.loads(line)
 
 
-def norm_pid(pid: str) -> str:
-    pid = (pid or "").strip().lower()
-    if not pid:
-        return ""
-    if pid.startswith("doi:"):
-        pid = pid[4:]
-    return pid
-
 def load_papers_index(papers_jsonl_path: str) -> dict:
+    """
+    paper_id -> paper dict
+    """
     idx = {}
     p = Path(papers_jsonl_path)
     if not p.exists():
         return idx
     for r in iter_jsonl(p):
-        pid = norm_pid(r.get("paper_id"))
+        pid = (r.get("paper_id") or "").strip()
         if pid:
             idx[pid] = r
     return idx
@@ -189,6 +184,8 @@ st.title("Insurance & Risk Management Literature Tree (Graph)")
 # Paths
 TREE_PATH = "tree.json"
 PAPERS_PATH = "data/papers.jsonl"  # 필요 시 변경
+
+
 
 show_ids = st.checkbox("Show paper_ids in leaf nodes", value=False)
 
