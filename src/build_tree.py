@@ -135,6 +135,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--papers", default="data/papers.jsonl")
     ap.add_argument("--out", default="tree.json")
+    ap.add_argument(
+    "--include_theory",
+    action="store_true",
+    help="Include theory papers in the tree (default: exclude theory)",
+    )
     args = ap.parse_args()
 
     papers_path = Path(args.papers)
@@ -151,6 +156,12 @@ def main():
         pid = (r.get("paper_id") or "").strip()
         if not pid:
             continue
+        
+        # ✅ Exclude theory papers by default
+        study_type = (r.get("study_type") or "").strip().lower()
+        if (study_type == "theory") and (not args.include_theory):
+            continue
+
 
         t1, t2 = get_topic_fields(r)
         l0, l1, l2 = split_topics(t1, t2)
