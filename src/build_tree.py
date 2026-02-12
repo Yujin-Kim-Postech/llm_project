@@ -23,6 +23,38 @@ def _norm(x: Optional[str]) -> str:
 
 TOP_RE = re.compile(r"^([A-F])(\d+)?([a-z])?$")  # e.g., A1a, A1, A, F2b
 
+TOPIC_L0_LABEL = {
+    "A": "Insurance Demand · Consumer Choice",
+    "B": "Loss Modeling · Claims · Pricing · Operations (incl. fraud/triage)",
+    "C": "Catastrophe · Climate · Reinsurance · ILS",
+    "D": "Cyber · Technology Risk",
+    "E": "Finance & Macro-Finance Links",
+    "F": "Regulation · Accounting · Disclosure · Governance",
+}
+
+TOPIC_L1_LABEL = {
+    "A1": "Retirement/Longevity/LTC",
+    "A2": "Health insurance",
+    "A3": "Index/agri insurance & consumer information design",
+    "B1": "Claim frequency/severity & loss prediction",
+    "B2": "Reserving / claims development / IBNR",
+    "B3": "Claims operations & fraud/verification",
+    "B4": "Underwriting, risk classification & information frictions",
+    "C1": "Nat-cat & climate extremes: losses/exposure/insurance outcomes",
+    "C2": "Reinsurance: capacity, pricing cycles, supply frictions",
+    "C3": "CAT bonds / ILS: issuance, spreads, triggers, basis risk",
+    "D1": "Cyber risk",
+    "D2": "AI/Model risk & automation in insurance",
+    "E1": "Risk premia & asset pricing",
+    "E2": "Intermediation, systemic risk & financial stability",
+    "E3": "Climate finance",
+    "F1": "Solvency/capital regulation & market discipline",
+    "F2": "Insurance & pension accounting/valuation",
+    "F3": "Risk governance & culture",
+    "F4": "Insurance market regulation, competition & availability",
+}
+
+
 def _first(x: Any) -> Optional[str]:
     """list면 첫 원소, str이면 그대로, 그 외 None"""
     if x is None:
@@ -150,14 +182,18 @@ def main():
         return (2, x)
 
     for l0 in sorted(tree.keys(), key=_sort_key_label):
-        node_l0 = {"name": l0, "children": []}
+        l0_label = TOPIC_L0_LABEL.get(l0, "")
+        node_l0 = {"name": f"{l0}. {l0_label}" if l0_label else l0, "children": [], "topic_code": l0}
+
 
         for l1 in sorted(tree[l0].keys(), key=_sort_key_label):
             l2map = tree[l0][l1]
 
             # ✅ L1에 직접 붙는 paper들(= topicl2 없던 것들)
             self_papers = l2map.get(SELF_KEY, [])
-            node_l1 = {"name": l1, "children": []}
+            l1_label = TOPIC_L1_LABEL.get(l1, "")
+            node_l1 = {"name": f"{l1}. {l1_label}" if l1_label else l1, "children": [], "topic_code": l1}
+
 
             if self_papers:
                 node_l1["value"] = len(self_papers)
