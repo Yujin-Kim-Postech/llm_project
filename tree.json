@@ -58,19 +58,14 @@
           "name": "A3. Index/agri insurance & consumer information design",
           "children": [],
           "topic_code": "A3",
-          "value": 2,
+          "value": 1,
           "paper_ids": [
-            "doi:10.1111/jori.12480",
-            "doi:10.1111/jori.70016"
+            "doi:10.1111/jori.12480"
           ],
           "papers": [
             {
               "paper_id": "doi:10.1111/jori.12480",
               "title": "Does inequality impede risk management? Evidence from a lab experiment in Ghana"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.70016",
-              "title": "Optimal insurance design under limited liability"
             }
           ]
         }
@@ -155,19 +150,13 @@
           "name": "C1. Nat-cat & climate extremes: losses/exposure/insurance outcomes",
           "children": [],
           "topic_code": "C1",
-          "value": 5,
+          "value": 3,
           "paper_ids": [
             "doi:10.1111/jori.12460",
             "doi:10.1111/jori.12466",
-            "doi:10.1111/jori.12468",
-            "doi:10.1111/jori.12470",
             "doi:10.1111/jori.12491"
           ],
           "papers": [
-            {
-              "paper_id": "doi:10.1111/jori.12470",
-              "title": "Catastrophe risk in a stochastic multi‐population mortality model"
-            },
             {
               "paper_id": "doi:10.1111/jori.12466",
               "title": "Improving household and community disaster recovery: Evidence on the role of insurance"
@@ -177,53 +166,13 @@
               "title": "Insurers’ climate change risk management quality and natural disasters"
             },
             {
-              "paper_id": "doi:10.1111/jori.12468",
-              "title": "Pareto‐efficient risk sharing in centralized insurance markets with application to flood risk"
-            },
-            {
               "paper_id": "doi:10.1111/jori.12491",
               "title": "The effect of subsidized flood insurance on real estate markets"
-            }
-          ]
-        },
-        {
-          "name": "C3. CAT bonds / ILS: issuance, spreads, triggers, basis risk",
-          "children": [],
-          "topic_code": "C3",
-          "value": 1,
-          "paper_ids": [
-            "doi:10.1111/jori.12458"
-          ],
-          "papers": [
-            {
-              "paper_id": "doi:10.1111/jori.12458",
-              "title": "Multiperiod peer-to-peer risk sharing"
             }
           ]
         }
       ],
       "topic_code": "C"
-    },
-    {
-      "name": "D. Cyber · Technology Risk",
-      "children": [
-        {
-          "name": "D2. AI/Model risk & automation in insurance",
-          "children": [],
-          "topic_code": "D2",
-          "value": 1,
-          "paper_ids": [
-            "doi:10.1111/jori.12495"
-          ],
-          "papers": [
-            {
-              "paper_id": "doi:10.1111/jori.12495",
-              "title": "The economics of emerging insurance technologies: Theory and early evidence"
-            }
-          ]
-        }
-      ],
-      "topic_code": "D"
     },
     {
       "name": "E. Finance & Macro-Finance Links",
@@ -247,24 +196,14 @@
           "name": "E2. Intermediation, systemic risk & financial stability",
           "children": [],
           "topic_code": "E2",
-          "value": 3,
+          "value": 1,
           "paper_ids": [
-            "doi:10.1111/jori.12484",
-            "doi:10.1111/jori.12485",
             "doi:10.1111/jori.70028"
           ],
           "papers": [
             {
               "paper_id": "doi:10.1111/jori.70028",
               "title": "Gambling for market recovery? European insurers' corporate bond investments during market stress"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12485",
-              "title": "Loan guarantees and SMEs' investments under asymmetric information and Bayesian learning"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12484",
-              "title": "On the efficiency of insurance institutions under interdependent risks"
             }
           ]
         }
@@ -308,10 +247,9 @@
           "name": "F4. Insurance market regulation, competition & availability",
           "children": [],
           "topic_code": "F4",
-          "value": 3,
+          "value": 2,
           "paper_ids": [
             "doi:10.1111/jori.12471",
-            "doi:10.1111/jori.12497",
             "doi:10.1111/jori.70029"
           ],
           "papers": [
@@ -322,10 +260,6 @@
             {
               "paper_id": "doi:10.1111/jori.12471",
               "title": "The market for model laws: The diffusion of NAIC model laws"
-            },
-            {
-              "paper_id": "doi:10.1111/jori.12497",
-              "title": "The role of government versus private sector provision of insurance"
             }
           ]
         }
