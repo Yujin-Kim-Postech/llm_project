@@ -185,11 +185,6 @@ st.title("Insurance & Risk Management Literature Tree (Graph)")
 TREE_PATH = "tree.json"
 PAPERS_PATH = "data/papers.jsonl"  # 필요 시 변경
 
-st.sidebar.write("TREE exists:", Path(TREE_PATH).exists())
-st.sidebar.write("PAPERS exists:", Path(PAPERS_PATH).exists())
-st.sidebar.write("PAPERS size:", Path(PAPERS_PATH).stat().st_size if Path(PAPERS_PATH).exists() else None)
-
-
 show_ids = st.checkbox("Show paper_ids in leaf nodes", value=False)
 
 tree = load_tree(TREE_PATH)
@@ -215,6 +210,13 @@ if node is None:
     st.error("Selected node not found in tree.")
 else:
     paper_ids = collect_paper_ids_under(node)
+
+    st.sidebar.write("DEBUG paper_ids sample:", paper_ids[:5])
+    st.sidebar.write("DEBUG papers_idx hit sample:",
+                    [pid for pid in paper_ids[:20] if pid in papers_idx][:5])
+    st.sidebar.write("DEBUG missing count (first 20 check):",
+                    sum(1 for pid in paper_ids[:20] if pid not in papers_idx))
+
 
     st.subheader(f"Selection: {selected_path}")
     st.caption(f"Papers under this node: {len(paper_ids)}")
