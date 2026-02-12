@@ -185,6 +185,11 @@ st.title("Insurance & Risk Management Literature Tree (Graph)")
 TREE_PATH = "tree.json"
 PAPERS_PATH = "data/papers.jsonl"  # 필요 시 변경
 
+st.sidebar.write("TREE exists:", Path(TREE_PATH).exists())
+st.sidebar.write("PAPERS exists:", Path(PAPERS_PATH).exists())
+st.sidebar.write("PAPERS size:", Path(PAPERS_PATH).stat().st_size if Path(PAPERS_PATH).exists() else None)
+
+
 show_ids = st.checkbox("Show paper_ids in leaf nodes", value=False)
 
 tree = load_tree(TREE_PATH)
