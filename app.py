@@ -230,12 +230,21 @@ else:
             y_to_papers[y].append(pid)
 
     # Topline: Y 리스트 + 개수
+    # Topline: Y 리스트 + 개수
     rows = []
     for y, ids in sorted(y_to_papers.items(), key=lambda kv: (-len(kv[1]), kv[0])):
         rows.append({"dependent_variable_Y": y, "n_papers": len(ids)})
 
     st.markdown("### Dependent variables (Y) under this node")
     st.dataframe(rows, use_container_width=True, hide_index=True)
+
+    # ✅ rows가 비면 여기서 종료 (selectbox 옵션 비어서 터지는 것 방지)
+    if len(rows) == 0:
+        st.info("이 노드 아래에서 집계할 논문이 없어요 (paper_ids가 없거나 papers.jsonl 매칭 실패).")
+        if missing:
+            st.caption(f"tree에는 있는데 {PAPERS_PATH}에 없는 paper_id (처음 20개):")
+            st.code("\n".join(missing[:20]))
+        st.stop()
 
     # 상세: 선택한 Y의 논문 목록
     st.markdown("### Drill-down: papers by selected Y")
@@ -254,6 +263,3 @@ else:
     if missing:
         st.warning(f"{len(missing)} paper_ids were in tree.json but not found in {PAPERS_PATH}. (showing first 10)")
         st.code("\n".join(missing[:10]))
-
-with st.expander("Raw Tree JSON"):
-    st.json(tree)
