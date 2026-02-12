@@ -24,16 +24,21 @@ def iter_jsonl(path: Path):
                 yield json.loads(line)
 
 
+def norm_pid(pid: str) -> str:
+    pid = (pid or "").strip().lower()
+    if not pid:
+        return ""
+    if pid.startswith("doi:"):
+        pid = pid[4:]
+    return pid
+
 def load_papers_index(papers_jsonl_path: str) -> dict:
-    """
-    paper_id -> paper dict
-    """
     idx = {}
     p = Path(papers_jsonl_path)
     if not p.exists():
         return idx
     for r in iter_jsonl(p):
-        pid = (r.get("paper_id") or "").strip()
+        pid = norm_pid(r.get("paper_id"))
         if pid:
             idx[pid] = r
     return idx
@@ -210,13 +215,6 @@ if node is None:
     st.error("Selected node not found in tree.")
 else:
     paper_ids = collect_paper_ids_under(node)
-
-    st.sidebar.write("DEBUG paper_ids sample:", paper_ids[:5])
-    st.sidebar.write("DEBUG papers_idx hit sample:",
-                    [pid for pid in paper_ids[:20] if pid in papers_idx][:5])
-    st.sidebar.write("DEBUG missing count (first 20 check):",
-                    sum(1 for pid in paper_ids[:20] if pid not in papers_idx))
-
 
     st.subheader(f"Selection: {selected_path}")
     st.caption(f"Papers under this node: {len(paper_ids)}")
