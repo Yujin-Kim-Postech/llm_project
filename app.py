@@ -138,18 +138,18 @@ def find_node_by_path(tree: dict, path_str: str) -> dict | None:
     return dfs(tree, [])
 
 
-def collect_paper_ids_under(node: dict) -> list[str]:
+def collect_paper_ids_under(node: dict, include_descendants: bool = True) -> list[str]:
     """
-    Collect all paper_ids in subtree.
-    leaf nodes store paper_ids; internal nodes may not.
+    Collect paper_ids from current node and optionally all descendants.
     """
     ids = set()
 
     def dfs(n):
         for pid in n.get("paper_ids", []) or []:
             ids.add(pid)
-        for ch in n.get("children", []) or []:
-            dfs(ch)
+        if include_descendants:
+            for ch in n.get("children", []) or []:
+                dfs(ch)
 
     dfs(node)
     return sorted(ids)
@@ -187,7 +187,7 @@ PAPERS_PATH = "data/papers.jsonl"  # 필요 시 변경
 
 
 
-show_ids = st.checkbox("Show paper_ids in leaf nodes", value=False)
+show_ids = st.checkbox("Show paper_ids in nodes", value=False)
 
 tree = load_tree(TREE_PATH)
 dot = build_graphviz(tree, show_paper_ids=show_ids)
@@ -204,6 +204,7 @@ options = [p for (p, _name) in nodes]
 default_idx = 0
 # ROOT / A / A1 같은 게 있으면 기본값을 A1로 잡고 싶으면 여기서 설정 가능
 selected_path = st.sidebar.selectbox("Select a node (e.g., ROOT / A / A1)", options, index=default_idx)
+include_descendants = st.sidebar.checkbox("Include descendants in aggregation", value=True)
 
 papers_idx = load_papers_index(PAPERS_PATH)
 
@@ -211,7 +212,7 @@ node = find_node_by_path(tree, selected_path)
 if node is None:
     st.error("Selected node not found in tree.")
 else:
-    paper_ids = collect_paper_ids_under(node)
+    paper_ids = collect_paper_ids_under(node, include_descendants=include_descendants)
 
     st.subheader(f"Selection: {selected_path}")
     st.caption(f"Papers under this node: {len(paper_ids)}")
