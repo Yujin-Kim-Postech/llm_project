@@ -252,6 +252,29 @@ def paper_year(p: dict) -> str:
 
     return str(year).strip()
 
+def paper_journal(p: dict) -> str:
+    """
+    실제 저널명 출력용.
+    우선순위: metadata.journal -> provenance.source_name
+    """
+    if not p:
+        return ""
+
+    m = p.get("metadata") or {}
+    j = ""
+    if isinstance(m, dict):
+        j = (m.get("journal") or "").strip()
+    if j:
+        return j
+
+    prov = p.get("provenance") or {}
+    if isinstance(prov, dict):
+        j2 = (prov.get("source_name") or "").strip()
+        if j2:
+            return j2
+
+    return ""
+
 def paper_citation_brief(p: dict) -> str:
     authors = paper_authors(p)
     year = paper_year(p)
@@ -395,34 +418,36 @@ else:
         summary = extract_summary_subject(p) if p else ""
         summary = summary or ""
         citation = paper_citation_brief(p) if p else ""
+        journal = paper_journal(p) if p else ""
         doi = norm_pid(pid)
 
         paper_list.append({
             "citation": citation,
             "title": title,
             "summary": summary,
+            "journal": journal,
             "doi": doi,
         })
 
-    # --- 논문 브라우저 스타일 출력 ---
+    # --- 고정 테이블 출력 ---
     st.markdown(f"#### **{chosen_y}** (n= {len(paper_list)})")
 
+    table_rows = []
     for i, row in enumerate(paper_list, start=1):
-        title = row.get("title", "").strip() or "(no title)"
-        citation = row.get("citation", "").strip()
-        summary = row.get("summary", "").strip()
-        doi = row.get("doi","").strip()
+        table_rows.append({
+            "No": i,
+            "Citation": row.get("citation", ""),
+            "Journal": row.get("journal", ""),
+            "Title": row.get("title", ""),
+            "Summary": row.get("summary", ""),
+            "DOI": f"https://doi.org/{row.get('doi','')}" if row.get("doi") else ""
+        })
 
-        with st.expander(f"{i}. {title}", expanded=False):
-            if citation:
-                st.markdown(f"**{citation}**")
-            if doi:
-                st.caption(f"DOI: https://doi.org/{doi}")
-            if summary:
-                st.markdown(summary)
-            else:
-                st.caption("(No summary available)")
-
+    st.dataframe(
+        table_rows,
+        use_container_width=True,
+        hide_index=True
+    )   
 
 
     if missing:
