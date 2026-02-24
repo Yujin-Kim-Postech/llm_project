@@ -177,6 +177,30 @@ def extract_dependent_y(paper: dict) -> str | None:
         return None
     return str(y).strip() if str(y).strip() else None
 
+def extract_summary_subject(paper: dict) -> str | None:
+    ea = paper.get("empirical_analysis")
+    if not isinstance(ea, dict):
+        return None
+
+    subj = ea.get("subject")
+    # subject가 list인 경우 (예시처럼)
+    if isinstance(subj, list) and len(subj) > 0:
+        s = str(subj[0]).strip()
+        return s if s else None
+
+    # 혹시 string으로 들어오는 경우도 커버
+    if isinstance(subj, str):
+        s = subj.strip()
+        return s if s else None
+
+    return None
+
+
+def shorten(s: str | None, n: int = 220) -> str:
+    if not s:
+        return ""
+    s = " ".join(str(s).split())
+    return (s[: n - 1] + "…") if len(s) > n else s
 
 def paper_title(p: dict) -> str:
     m = p.get("metadata") or {}
@@ -184,6 +208,62 @@ def paper_title(p: dict) -> str:
         return str(m["title"])
     return ""
 
+def paper_authors(p: dict) -> str:
+    """
+    metadata.authors를 모두 출력.
+    'Family, Given; Family, Given; ...' 형식
+    """
+    m = p.get("metadata") or {}
+    authors = m.get("authors")
+
+    if not authors:
+        return ""
+
+    names = []
+
+    if isinstance(authors, list):
+        for a in authors:
+            if isinstance(a, dict):
+                given = (a.get("given") or a.get("first") or "").strip()
+                family = (a.get("family") or a.get("last") or "").strip()
+
+                if family and given:
+                    nm = f"{family}, {given}"
+                else:
+                    nm = (a.get("name") or family or given).strip()
+
+                if nm:
+                    names.append(nm)
+
+            elif isinstance(a, str) and a.strip():
+                names.append(a.strip())
+
+    elif isinstance(authors, str):
+        names.append(authors.strip())
+
+    return "; ".join(names)
+
+def paper_year(p: dict) -> str:
+    m = p.get("metadata") or {}
+    year = m.get("year")
+
+    if not year:
+        return ""
+
+    return str(year).strip()
+
+def paper_citation_brief(p: dict) -> str:
+    authors = paper_authors(p)
+    year = paper_year(p)
+
+    if authors and year:
+        return f"{authors} ({year})"
+    elif authors:
+        return authors
+    elif year:
+        return f"({year})"
+    else:
+        return ""
 
 # -----------------------------
 # UI
@@ -204,16 +284,60 @@ dot = build_graphviz(tree, show_paper_ids=show_ids)
 
 st.graphviz_chart(dot, use_container_width=True)
 
-# Sidebar: node selection (click 대신)
+# Sidebar: node selection (Level 1 -> Level 2 with ALL options)
 st.sidebar.header("Node selection")
-nodes = list_nodes_with_paths(tree)
 
-# 사용자가 보통 A1 같은 걸 고르기 쉽게 "name"도 같이 보여주는 옵션 라벨 구성
-options = [p for (p, _name) in nodes]
+root_name = tree.get("name", "ROOT")
+level1_nodes = tree.get("children", []) or []
 
-default_idx = 0
-# ROOT / A / A1 같은 게 있으면 기본값을 A1로 잡고 싶으면 여기서 설정 가능
-selected_path = st.sidebar.selectbox("Select a node (e.g., ROOT / A / A1)", options, index=default_idx)
+def node_label(n: dict) -> str:
+    name = n.get("name", "")
+    value = n.get("value", None)
+    return f"{name} (n={value})" if value is not None else name
+
+
+# -------------------------
+# Level 1 (with ALL)
+# -------------------------
+level1_labels = ["(All categories)"] + [node_label(n) for n in level1_nodes]
+
+chosen_l1_label = st.sidebar.selectbox(
+    "Level 1 (A~F)",
+    level1_labels,
+    index=0
+)
+
+# ---- Level1 = ALL ----
+if chosen_l1_label == "(All categories)":
+    selected_path = root_name
+
+# ---- Level1 = specific (A~F) ----
+else:
+    l1_idx = level1_labels.index(chosen_l1_label) - 1
+    l1_node = level1_nodes[l1_idx]
+
+    level2_nodes = l1_node.get("children", []) or []
+
+    # -------------------------
+    # Level 2 (with ALL under L1)
+    # -------------------------
+    if not level2_nodes:
+        selected_path = f"{root_name} / {l1_node.get('name','')}"
+    else:
+        level2_labels = ["(All under Level 1)"] + [node_label(n) for n in level2_nodes]
+
+        chosen_l2_label = st.sidebar.selectbox(
+            "Level 2 (A1~...)",
+            level2_labels,
+            index=0
+        )
+
+        if chosen_l2_label == "(All under Level 1)":
+            selected_path = f"{root_name} / {l1_node.get('name','')}"
+        else:
+            l2_idx = level2_labels.index(chosen_l2_label) - 1
+            l2_node = level2_nodes[l2_idx]
+            selected_path = f"{root_name} / {l1_node.get('name','')} / {l2_node.get('name','')}"
 
 papers_idx = load_papers_index(PAPERS_PATH)
 
@@ -268,9 +392,23 @@ else:
     for pid in chosen_ids:
         p = papers_idx.get(norm_pid(pid))
         title = paper_title(p) if p else ""
-        paper_list.append({"paper_id": pid, "title": title})
+        summary = shorten(extract_summary_subject(p), 220) if p else ""
+        citation = paper_citation_brief(p) if p else ""
+
+        paper_list.append({
+            "citation": citation,
+            "title": title,
+            "summary": summary,
+        })
 
     st.dataframe(paper_list, use_container_width=True, hide_index=True)
+
+    with st.expander("Show identifiers (paper_id/DOI)"):
+        st.dataframe(
+            [{"paper_id": pid} for pid in chosen_ids],
+            use_container_width=True,
+            hide_index=True
+        )
 
     if missing:
         st.warning(f"{len(missing)} paper_ids were in tree.json but not found in {PAPERS_PATH}. (showing first 10)")
