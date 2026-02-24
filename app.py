@@ -348,7 +348,7 @@ else:
     paper_ids = collect_paper_ids_under(node)
 
     st.subheader(f"Selection: {selected_path}")
-    st.caption(f"Papers under this node: {len(paper_ids)}")
+    st.caption(f"Papers under this category: {len(paper_ids)}")
 
     # dependent Y 집계
     y_to_papers = defaultdict(list)
@@ -383,32 +383,47 @@ else:
         st.stop()
 
     # 상세: 선택한 Y의 논문 목록
-    st.markdown("### Drill-down: papers by selected Y")
+    st.markdown("### Papers by Selected Dependent Variables (Y)")
     y_options = [r["dependent_variable_Y"] for r in rows]
-    chosen_y = st.selectbox("Choose a dependent Y", y_options)
+    chosen_y = st.selectbox("## Choose a dependent Y", y_options)
 
     chosen_ids = y_to_papers.get(chosen_y, [])
     paper_list = []
     for pid in chosen_ids:
         p = papers_idx.get(norm_pid(pid))
         title = paper_title(p) if p else ""
-        summary = shorten(extract_summary_subject(p), 220) if p else ""
+        summary = extract_summary_subject(p) if p else ""
+        summary = summary or ""
         citation = paper_citation_brief(p) if p else ""
+        doi = norm_pid(pid)
 
         paper_list.append({
             "citation": citation,
             "title": title,
             "summary": summary,
+            "doi": doi,
         })
 
-    st.dataframe(paper_list, use_container_width=True, hide_index=True)
+    # --- 논문 브라우저 스타일 출력 ---
+    st.markdown(f"#### **{chosen_y}** (n= {len(paper_list)})")
 
-    with st.expander("Show identifiers (paper_id/DOI)"):
-        st.dataframe(
-            [{"paper_id": pid} for pid in chosen_ids],
-            use_container_width=True,
-            hide_index=True
-        )
+    for i, row in enumerate(paper_list, start=1):
+        title = row.get("title", "").strip() or "(no title)"
+        citation = row.get("citation", "").strip()
+        summary = row.get("summary", "").strip()
+        doi = row.get("doi","").strip()
+
+        with st.expander(f"{i}. {title}", expanded=False):
+            if citation:
+                st.markdown(f"**{citation}**")
+            if doi:
+                st.caption(f"DOI: https://doi.org/{doi}")
+            if summary:
+                st.markdown(summary)
+            else:
+                st.caption("(No summary available)")
+
+
 
     if missing:
         st.warning(f"{len(missing)} paper_ids were in tree.json but not found in {PAPERS_PATH}. (showing first 10)")
