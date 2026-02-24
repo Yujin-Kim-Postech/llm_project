@@ -24,16 +24,26 @@ def iter_jsonl(path: Path):
                 yield json.loads(line)
 
 
+def norm_pid(pid: str) -> str:
+    pid = (pid or "").strip().lower()
+    if not pid:
+        return ""
+    if pid.startswith("doi:"):
+        pid = pid[4:]
+    return pid
+
 def load_papers_index(papers_jsonl_path: str) -> dict:
     """
-    paper_id -> paper dict
+    normalized paper_id -> paper dict
     """
     idx = {}
     p = Path(papers_jsonl_path)
     if not p.exists():
         return idx
+
     for r in iter_jsonl(p):
-        pid = (r.get("paper_id") or "").strip()
+        raw = (r.get("paper_id") or "").strip()
+        pid = norm_pid(raw)
         if pid:
             idx[pid] = r
     return idx
@@ -138,18 +148,18 @@ def find_node_by_path(tree: dict, path_str: str) -> dict | None:
     return dfs(tree, [])
 
 
-def collect_paper_ids_under(node: dict, include_descendants: bool = True) -> list[str]:
+def collect_paper_ids_under(node: dict) -> list[str]:
     """
-    Collect paper_ids from current node and optionally all descendants.
+    Collect all paper_ids in subtree.
+    leaf nodes store paper_ids; internal nodes may not.
     """
     ids = set()
 
     def dfs(n):
         for pid in n.get("paper_ids", []) or []:
             ids.add(pid)
-        if include_descendants:
-            for ch in n.get("children", []) or []:
-                dfs(ch)
+        for ch in n.get("children", []) or []:
+            dfs(ch)
 
     dfs(node)
     return sorted(ids)
@@ -187,7 +197,7 @@ PAPERS_PATH = "data/papers.jsonl"  # 필요 시 변경
 
 
 
-show_ids = st.checkbox("Show paper_ids in nodes", value=False)
+show_ids = st.checkbox("Show paper_ids in leaf nodes", value=False)
 
 tree = load_tree(TREE_PATH)
 dot = build_graphviz(tree, show_paper_ids=show_ids)
@@ -204,7 +214,6 @@ options = [p for (p, _name) in nodes]
 default_idx = 0
 # ROOT / A / A1 같은 게 있으면 기본값을 A1로 잡고 싶으면 여기서 설정 가능
 selected_path = st.sidebar.selectbox("Select a node (e.g., ROOT / A / A1)", options, index=default_idx)
-include_descendants = st.sidebar.checkbox("Include descendants in aggregation", value=True)
 
 papers_idx = load_papers_index(PAPERS_PATH)
 
@@ -212,7 +221,7 @@ node = find_node_by_path(tree, selected_path)
 if node is None:
     st.error("Selected node not found in tree.")
 else:
-    paper_ids = collect_paper_ids_under(node, include_descendants=include_descendants)
+    paper_ids = collect_paper_ids_under(node)
 
     st.subheader(f"Selection: {selected_path}")
     st.caption(f"Papers under this node: {len(paper_ids)}")
@@ -222,7 +231,7 @@ else:
     missing = []
 
     for pid in paper_ids:
-        p = papers_idx.get(pid)
+        p = papers_idx.get(norm_pid(pid))
         if not p:
             missing.append(pid)
             continue
@@ -257,7 +266,7 @@ else:
     chosen_ids = y_to_papers.get(chosen_y, [])
     paper_list = []
     for pid in chosen_ids:
-        p = papers_idx.get(pid)
+        p = papers_idx.get(norm_pid(pid))
         title = paper_title(p) if p else ""
         paper_list.append({"paper_id": pid, "title": title})
 

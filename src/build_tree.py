@@ -25,7 +25,7 @@ TOP_RE = re.compile(r"^([A-F])(\d+)?([a-z])?$")  # e.g., A1a, A1, A, F2b
 
 TOPIC_L0_LABEL = {
     "A": "Insurance Demand · Consumer Choice",
-    "B": "Loss Modeling · Claims · Pricing · Operations (incl. fraud/triage)",
+    "B": "Loss Modeling · Claims · Pricing · Operations (incl. fraud, triage)",
     "C": "Catastrophe · Climate · Reinsurance · ILS",
     "D": "Cyber · Technology Risk",
     "E": "Finance & Macro-Finance Links",
@@ -33,23 +33,23 @@ TOPIC_L0_LABEL = {
 }
 
 TOPIC_L1_LABEL = {
-    "A1": "Retirement/Longevity/LTC",
+    "A1": "Retirement, Longevity, LTC",
     "A2": "Health insurance",
-    "A3": "Index/agri insurance & consumer information design",
-    "B1": "Claim frequency/severity & loss prediction",
-    "B2": "Reserving / claims development / IBNR",
-    "B3": "Claims operations & fraud/verification",
+    "A3": "Index, agri insurance & consumer information design",
+    "B1": "Claim frequency, severity & loss prediction",
+    "B2": "Reserving, claims development, IBNR",
+    "B3": "Claims operations & fraud, verification",
     "B4": "Underwriting, risk classification & information frictions",
-    "C1": "Nat-cat & climate extremes: losses/exposure/insurance outcomes",
+    "C1": "Nat-cat & climate extremes: losses, exposure, insurance outcomes",
     "C2": "Reinsurance: capacity, pricing cycles, supply frictions",
-    "C3": "CAT bonds / ILS: issuance, spreads, triggers, basis risk",
+    "C3": "CAT bonds, ILS: issuance, spreads, triggers, basis risk",
     "D1": "Cyber risk",
-    "D2": "AI/Model risk & automation in insurance",
+    "D2": "AI, Model risk & automation in insurance",
     "E1": "Risk premia & asset pricing",
     "E2": "Intermediation, systemic risk & financial stability",
     "E3": "Climate finance",
-    "F1": "Solvency/capital regulation & market discipline",
-    "F2": "Insurance & pension accounting/valuation",
+    "F1": "Solvency, capital regulation & market discipline",
+    "F2": "Insurance & pension accounting, valuation",
     "F3": "Risk governance & culture",
     "F4": "Insurance market regulation, competition & availability",
 }
