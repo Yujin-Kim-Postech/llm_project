@@ -84,9 +84,9 @@ If a paper does **not clearly fit** into any existing L1/L2 category:
 
 If multiple papers accumulate in `Others`, you must:
 
-1.  Propose a new L2 (or L1 if necessary)\
-2.  Update the category list in `README.md`\
-3.  Reclassify affected papers\
+1.  Propose a new L2 (or L1 if necessary)
+2.  Update the category list in `README.md`
+3.  Reclassify affected papers
 4.  Rebuild the tree
 
 This system is intentionally **extensible**.\
