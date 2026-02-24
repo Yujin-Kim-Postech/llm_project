@@ -5,7 +5,7 @@
       "name": "A. Insurance Demand · Consumer Choice",
       "children": [
         {
-          "name": "A1. Retirement/Longevity/LTC",
+          "name": "A1. Retirement, Longevity, LTC",
           "children": [],
           "topic_code": "A1",
           "value": 5,
@@ -55,7 +55,7 @@
           ]
         },
         {
-          "name": "A3. Index/agri insurance & consumer information design",
+          "name": "A3. Index, agri insurance & consumer information design",
           "children": [],
           "topic_code": "A3",
           "value": 1,
@@ -73,10 +73,10 @@
       "topic_code": "A"
     },
     {
-      "name": "B. Loss Modeling · Claims · Pricing · Operations (incl. fraud/triage)",
+      "name": "B. Loss Modeling · Claims · Pricing · Operations (incl. fraud, triage)",
       "children": [
         {
-          "name": "B1. Claim frequency/severity & loss prediction",
+          "name": "B1. Claim frequency, severity & loss prediction",
           "children": [],
           "topic_code": "B1",
           "value": 1,
@@ -91,7 +91,7 @@
           ]
         },
         {
-          "name": "B2. Reserving / claims development / IBNR",
+          "name": "B2. Reserving, claims development, IBNR",
           "children": [],
           "topic_code": "B2",
           "value": 1,
@@ -106,7 +106,7 @@
           ]
         },
         {
-          "name": "B3. Claims operations & fraud/verification",
+          "name": "B3. Claims operations & fraud, verification",
           "children": [],
           "topic_code": "B3",
           "value": 2,
@@ -147,7 +147,7 @@
       "name": "C. Catastrophe · Climate · Reinsurance · ILS",
       "children": [
         {
-          "name": "C1. Nat-cat & climate extremes: losses/exposure/insurance outcomes",
+          "name": "C1. Nat-cat & climate extremes: losses, exposure, insurance outcomes",
           "children": [],
           "topic_code": "C1",
           "value": 3,
@@ -214,7 +214,7 @@
       "name": "F. Regulation · Accounting · Disclosure · Governance",
       "children": [
         {
-          "name": "F1. Solvency/capital regulation & market discipline",
+          "name": "F1. Solvency, capital regulation & market discipline",
           "children": [],
           "topic_code": "F1",
           "value": 1,
