@@ -11,3 +11,4 @@ labels/review_queue.jsonl
 
 # Secrets
 .env
+.streamlit/secrets.toml
