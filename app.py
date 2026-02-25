@@ -363,12 +363,19 @@ else:
             selected_path = f"{root_name} / {l1_node.get('name','')} / {l2_node.get('name','')}"
 
 papers_idx = load_papers_index(PAPERS_PATH)
+paper_ids = []
+papers_in_node = []
 
 node = find_node_by_path(tree, selected_path)
 if node is None:
     st.error("Selected node not found in tree.")
 else:
     paper_ids = collect_paper_ids_under(node)
+    papers_in_node = []
+    for pid in paper_ids:
+        p = papers_idx.get(norm_pid(pid))
+        if p:
+            papers_in_node.append(p)
 
     st.subheader(f"Selection: {selected_path}")
     st.caption(f"Papers under this category: {len(paper_ids)}")
@@ -453,3 +460,165 @@ else:
     if missing:
         st.warning(f"{len(missing)} paper_ids were in tree.json but not found in {PAPERS_PATH}. (showing first 10)")
         st.code("\n".join(missing[:10]))
+
+import numpy as np
+import os
+import streamlit as st
+from streamlit.errors import StreamlitSecretNotFoundError
+from openai import OpenAI
+
+@st.cache_resource
+def get_client():
+    api_key = None
+    try:
+        api_key = st.secrets["OPENAI_API_KEY"]
+    except (StreamlitSecretNotFoundError, KeyError):
+        api_key = os.getenv("OPENAI_API_KEY")
+
+    if not api_key:
+        st.error("OPENAI_API_KEY가 설정되어 있지 않습니다. (.streamlit/secrets.toml 또는 환경변수로 설정)")
+        st.stop()
+
+    return OpenAI(api_key=api_key)
+
+def cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
+    a = a / (np.linalg.norm(a) + 1e-12)
+    b = b / (np.linalg.norm(b) + 1e-12)
+    return float(np.dot(a, b))
+
+def embed_texts(client: OpenAI, texts: list[str]) -> np.ndarray:
+    resp = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=texts,
+    )
+    return np.array([d.embedding for d in resp.data], dtype=np.float32)
+
+def build_context(papers_in_node: list[dict], max_papers: int = 25) -> str:
+    # title/abstract만 넣어도 충분 (토큰 절약)
+    chunks = []
+    for p in papers_in_node[:max_papers]:
+        title = (p.get("metadata", {}).get("title") or "").strip()
+        abst  = (p.get("metadata", {}).get("abstract") or "").strip()
+        if title:
+            chunks.append(f"- {title}\n  {abst[:500]}")
+    return "\n".join(chunks)
+
+def generate_rqs(client, x, y, context, k=8):
+    schema = {
+        "name": "rq_bundle",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "rqs": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "rq": {"type": "string"},
+                            "x_used": {"type": "string"},
+                            "y_used": {"type": "string"},
+                            "motivation": {"type": "string"},
+                            "suggested_design": {"type": "string"},
+                            "keywords": {"type": "array", "items": {"type": "string"}}
+                        },
+                        "required": ["rq", "x_used", "y_used", "motivation", "suggested_design", "keywords"],
+                        "additionalProperties": False
+                    }
+                }
+            },
+            "required": ["rqs"],
+            "additionalProperties": False
+        },
+        "strict": True
+    }
+
+    x_txt = x if x else "<미입력>"
+    y_txt = y if y else "<미입력>"
+
+    prompt = f"""
+You will generate “new” and empirically testable research questions (RQs), avoiding questions that have already been addressed in the literature (see the context below).
+
+User inputs:
+- X: {x_txt}
+- Y: {y_txt}
+
+Rules:
+- If X or Y is <not provided>, fill in the missing side with a “plausible candidate” based on the literature context and domain knowledge, and then generate the RQ.
+- Preserve the user-provided side (X or Y) as much as possible; however, you may refine it into a more specific, measurable definition if needed.
+- Propose {k} RQs, and for each RQ you must include x_used and y_used.
+
+Literature context:
+{context}
+"""
+
+    completion = client.chat.completions.create(
+        model="gpt-4o-2024-08-06",
+        messages=[
+            {"role": "system", "content": "You are a careful research assistant."},
+            {"role": "user", "content": prompt},
+        ],
+        response_format={"type": "json_schema", "json_schema": schema},
+        temperature=0.7,
+    )
+
+    return json.loads(completion.choices[0].message.content)["rqs"]
+
+def novelty_filter(client: OpenAI, rqs: list[dict], existing_texts: list[str], thr: float = 0.82):
+    # existing_texts: 보통 title + abstract 결합한 fingerprint 추천
+    rq_texts = [r["rq"] for r in rqs]
+    E = embed_texts(client, existing_texts)     # (N, d)
+    Q = embed_texts(client, rq_texts)           # (K, d)
+
+    kept = []
+    for i, r in enumerate(rqs):
+        sims = [cosine_sim(Q[i], E[j]) for j in range(len(existing_texts))]
+        mx = max(sims) if sims else 0.0
+        r["max_similarity"] = mx
+        r["is_novel_wrt_dataset"] = (mx < thr)
+        kept.append(r)
+    return kept
+
+# -----------------------------
+# Streamlit UI skeleton
+# -----------------------------
+st.title("RQ Generator")
+
+x = st.text_input("X", placeholder="(미입력 가능)")
+y = st.text_input("Y", placeholder="(미입력 가능)")
+
+run = st.button("RQ 생성", disabled=not (x.strip() or y.strip()))
+
+if run:
+    if not (x.strip() or y.strip()):
+        st.warning("X 또는 Y 중 하나 이상 입력해주세요.")
+        st.stop()
+
+    if len(papers_in_node) == 0:
+        st.warning("현재 선택된 노드에서 papers.jsonl로 매칭된 논문이 없어 컨텍스트가 비어있습니다.")
+        # 그래도 생성은 가능하게 두려면 st.stop()은 하지 말고 진행
+        # st.stop()
+
+    client = get_client()
+
+    x_in = x.strip() or None
+    y_in = y.strip() or None
+
+    context = build_context(papers_in_node, max_papers=25)
+
+    rqs = generate_rqs(client, x_in, y_in, context, k=8)
+
+    existing_texts = []
+    for p in papers_in_node:
+        md = p.get("metadata", {}) or {}
+        existing_texts.append((md.get("title", "") + " " + md.get("abstract", "")).strip())
+
+    # existing_texts가 비면 임베딩 호출하지 않도록 처리
+    if not any(t for t in existing_texts):
+        for r in rqs:
+            r["max_similarity"] = 0.0
+            r["is_novel_wrt_dataset"] = True
+        scored = rqs
+    else:
+        scored = novelty_filter(client, rqs, existing_texts, thr=0.82)
+
+    st.dataframe(scored, use_container_width=True)
