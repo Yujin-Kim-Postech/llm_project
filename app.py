@@ -362,46 +362,61 @@ st.sidebar.header("Node selection")
 root_name = tree.get("name", "ROOT")
 level1_nodes = tree.get("children", []) or []
 
+# label -> node 매핑
 def node_label(n: dict) -> str:
-    name = n.get("name", "")
+    name = str(n.get("name", "")).strip()
     value = n.get("value", None)
     return f"{name} (n={value})" if value is not None else name
 
-# name -> node 매핑
-level1_name_to_node = {str(n.get("name", "")): n for n in level1_nodes}
+level1_label_to_node = {node_label(n): n for n in level1_nodes}
 
-# -------------------------
-# Level 1
-# -------------------------
-level1_options = ["(All categories)"] + list(level1_name_to_node.keys())
-
-chosen_l1 = st.sidebar.selectbox(
+chosen_l1_label = st.sidebar.selectbox(
     "Level 1",
-    level1_options,
+    ["(All categories)"] + list(level1_label_to_node.keys()),
     index=0
 )
 
-if chosen_l1 == "(All categories)":
+if chosen_l1_label == "(All categories)":
     selected_path = root_name
+
 else:
-    l1_node = level1_name_to_node[chosen_l1]
-    level2_nodes = l1_node.get("children", []) or []
+    l1_node = level1_label_to_node[chosen_l1_label]
+    l1_name = str(l1_node.get("name", "")).strip()
 
-    # 선택한 L1의 자식만 표시
-    level2_name_to_node = {str(n.get("name", "")): n for n in level2_nodes}
-    level2_options = ["(All under selected Level 1)"] + list(level2_name_to_node.keys())
+    raw_level2_nodes = l1_node.get("children", []) or []
 
-    chosen_l2 = st.sidebar.selectbox(
+    # case 1: 바로 아래가 A1/A2 같은 세부항목인 경우
+    # case 2: 바로 아래가 'A' 하나이고, 그 아래에 A1/A2가 있는 경우
+    if len(raw_level2_nodes) == 1:
+        only_child = raw_level2_nodes[0]
+        only_child_name = str(only_child.get("name", "")).strip()
+        grand_children = only_child.get("children", []) or []
+
+        # 중간 노드가 A/B/C 같은 코드성 노드이면 한 단계 더 내려감
+        if grand_children and len(only_child_name) <= 3:
+            level2_nodes = grand_children
+            level2_parent_path = f"{root_name} / {l1_name} / {only_child_name}"
+        else:
+            level2_nodes = raw_level2_nodes
+            level2_parent_path = f"{root_name} / {l1_name}"
+    else:
+        level2_nodes = raw_level2_nodes
+        level2_parent_path = f"{root_name} / {l1_name}"
+
+    level2_label_to_node = {node_label(n): n for n in level2_nodes}
+
+    chosen_l2_label = st.sidebar.selectbox(
         "Level 2",
-        level2_options,
+        ["(All under selected Level 1)"] + list(level2_label_to_node.keys()),
         index=0
     )
 
-    if chosen_l2 == "(All under selected Level 1)":
-        selected_path = f"{root_name} / {chosen_l1}"
+    if chosen_l2_label == "(All under selected Level 1)":
+        selected_path = level2_parent_path
     else:
-        l2_node = level2_name_to_node[chosen_l2]
-        selected_path = f"{root_name} / {chosen_l1} / {l2_node.get('name', '')}"
+        l2_node = level2_label_to_node[chosen_l2_label]
+        l2_name = str(l2_node.get("name", "")).strip()
+        selected_path = f"{level2_parent_path} / {l2_name}"
 
 papers_idx = load_papers_index(PAPERS_PATH)
 paper_ids = []
@@ -440,7 +455,7 @@ else:
     # Topline: Y 리스트 + 개수
     rows = []
     for y, ids in sorted(y_to_papers.items(), key=lambda kv: (-len(kv[1]), kv[0])):
-        rows.append({"dependent_variable_Y": y, "n_papers": len(ids)})
+        rows.append({"Dependent_Variable_Y": y, "n_papers": len(ids)})
 
     st.markdown("### Dependent variables (Y) under this node")
     st.dataframe(rows, use_container_width=True, hide_index=True)
@@ -455,8 +470,8 @@ else:
 
     # 상세: 선택한 Y의 논문 목록
     st.markdown("### Papers by Selected Dependent Variables (Y)")
-    y_options = [r["dependent_variable_Y"] for r in rows]
-    chosen_y = st.selectbox("## Choose a dependent Y", y_options)
+    y_options = [r["Dependent_Variable_Y"] for r in rows]
+    chosen_y = st.selectbox("## Choose a Dependent Y", y_options)
 
     chosen_ids = y_to_papers.get(chosen_y, [])
     paper_list = []
