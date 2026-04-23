@@ -42,7 +42,12 @@ def load_papers_index(papers_excel_path: str) -> dict:
     if not p.exists():
         return idx
 
-    df = pd.read_excel(p)
+    try:
+        df = pd.read_excel(p, engine="openpyxl")
+    except ImportError as exc:
+        st.error("Excel 파일을 읽으려면 openpyxl 패키지가 필요합니다. requirements.txt에 openpyxl을 추가하고 설치하세요.")
+        st.stop()
+        return idx
     for _, row in df.iterrows():
         doi = str(row.get("doi", "")).strip()
         if not doi:

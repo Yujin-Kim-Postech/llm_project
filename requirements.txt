@@ -6,3 +6,4 @@ pyyaml
 numpy
 scipy
 pandas
+openpyxl
