@@ -61,7 +61,11 @@ def load_papers_index(papers_excel_path: str) -> dict:
                 "title": str(row.get("title", "")),
                 "journal": str(row.get("journal", "")),
                 "year": row.get("year"),
-                "authors": [{"family": str(row.get("first_author", ""))}],  # Simplified
+                "authors": [str(row.get("first_author", "")).strip()],
+                "source_url": str(row.get("source_url","")),
+                "study_type": str(row.get("study_type", "")),
+                "Topic_L1": str(row.get("Topic_L1", "")),
+                "Topic_L2": str(row.get("Topic_L2", ""))
             },
             "empirical_analysis": {
                 "Dependent_Variable_Y": str(row.get("Dependent_Variable_Y", "")),
@@ -74,11 +78,11 @@ def load_papers_index(papers_excel_path: str) -> dict:
                 "unit_of_analysis": str(row.get("unit_of_analysis", "")),
                 "results": str(row.get("results", "")),
                 "keywords": str(row.get("keywords", "")),
-                "Topic_L1": str(row.get("Topic_L1", "")),
+                
             },
             "Topic_L1": str(row.get("Topic_L1", "")),
             "Topic_L2": str(row.get("Topic_L2", "")),
-            "study_type": str(row.get("study_type", "")),
+            "study_type": str(row.get("study_type", ""))
         }
         if pid:
             idx[pid] = paper
@@ -218,16 +222,26 @@ def extract_summary_subject(paper: dict) -> str | None:
     if not isinstance(ea, dict):
         return None
 
-    subj = ea.get("Topic_L1")
-    # subject가 list인 경우 (예시처럼)
-    if isinstance(subj, list) and len(subj) > 0:
-        s = str(subj[0]).strip()
-        return s if s else None
+    # 1순위: results
+    results = ea.get("results")
+    if isinstance(results, str):
+        r = results.strip()
+        if r:
+            return r
 
-    # 혹시 string으로 들어오는 경우도 커버
-    if isinstance(subj, str):
-        s = subj.strip()
-        return s if s else None
+    # 2순위: Topic_L2
+    topic_l2 = paper.get("Topic_L2")
+    if isinstance(topic_l2, str):
+        t2 = topic_l2.strip()
+        if t2:
+            return t2
+
+    # 3순위: Topic_L1
+    topic_l1 = paper.get("Topic_L1")
+    if isinstance(topic_l1, str):
+        t1 = topic_l1.strip()
+        if t1:
+            return t1
 
     return None
 
@@ -343,7 +357,6 @@ dot = build_graphviz(tree, show_paper_ids=show_ids)
 
 st.graphviz_chart(dot, use_container_width=True)
 
-# Sidebar: node selection (Level 1 -> Level 2 with ALL options)
 st.sidebar.header("Node selection")
 
 root_name = tree.get("name", "ROOT")
@@ -354,49 +367,41 @@ def node_label(n: dict) -> str:
     value = n.get("value", None)
     return f"{name} (n={value})" if value is not None else name
 
+# name -> node 매핑
+level1_name_to_node = {str(n.get("name", "")): n for n in level1_nodes}
 
 # -------------------------
-# Level 1 (with ALL)
+# Level 1
 # -------------------------
-level1_labels = ["(All categories)"] + [node_label(n) for n in level1_nodes]
+level1_options = ["(All categories)"] + list(level1_name_to_node.keys())
 
-chosen_l1_label = st.sidebar.selectbox(
-    "Level 1 (A~F)",
-    level1_labels,
+chosen_l1 = st.sidebar.selectbox(
+    "Level 1",
+    level1_options,
     index=0
 )
 
-# ---- Level1 = ALL ----
-if chosen_l1_label == "(All categories)":
+if chosen_l1 == "(All categories)":
     selected_path = root_name
-
-# ---- Level1 = specific (A~F) ----
 else:
-    l1_idx = level1_labels.index(chosen_l1_label) - 1
-    l1_node = level1_nodes[l1_idx]
-
+    l1_node = level1_name_to_node[chosen_l1]
     level2_nodes = l1_node.get("children", []) or []
 
-    # -------------------------
-    # Level 2 (with ALL under L1)
-    # -------------------------
-    if not level2_nodes:
-        selected_path = f"{root_name} / {l1_node.get('name','')}"
+    # 선택한 L1의 자식만 표시
+    level2_name_to_node = {str(n.get("name", "")): n for n in level2_nodes}
+    level2_options = ["(All under selected Level 1)"] + list(level2_name_to_node.keys())
+
+    chosen_l2 = st.sidebar.selectbox(
+        "Level 2",
+        level2_options,
+        index=0
+    )
+
+    if chosen_l2 == "(All under selected Level 1)":
+        selected_path = f"{root_name} / {chosen_l1}"
     else:
-        level2_labels = ["(All under Level 1)"] + [node_label(n) for n in level2_nodes]
-
-        chosen_l2_label = st.sidebar.selectbox(
-            "Level 2 (A1~...)",
-            level2_labels,
-            index=0
-        )
-
-        if chosen_l2_label == "(All under Level 1)":
-            selected_path = f"{root_name} / {l1_node.get('name','')}"
-        else:
-            l2_idx = level2_labels.index(chosen_l2_label) - 1
-            l2_node = level2_nodes[l2_idx]
-            selected_path = f"{root_name} / {l1_node.get('name','')} / {l2_node.get('name','')}"
+        l2_node = level2_name_to_node[chosen_l2]
+        selected_path = f"{root_name} / {chosen_l1} / {l2_node.get('name', '')}"
 
 papers_idx = load_papers_index(PAPERS_PATH)
 paper_ids = []
@@ -459,7 +464,7 @@ else:
         p = papers_idx.get(norm_pid(pid))
         title = paper_title(p) if p else ""
         summary = extract_summary_subject(p) if p else ""
-        summary = summary or ""
+        summary = shorten(summary or "", n=300)
         citation = paper_citation_brief(p) if p else ""
         journal = paper_journal(p) if p else ""
         doi = norm_pid(pid)
