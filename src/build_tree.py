@@ -17,27 +17,38 @@ def iter_jsonl(path: Path) -> Iterator[Dict[str, Any]]:
                 yield json.loads(line)
 
 
+def _clean_excel_value(x: Any) -> Optional[str]:
+    if pd.isna(x):
+        return None
+    s = str(x).strip()
+    if not s or s.lower() == "nan":
+        return None
+    return s
+
 def iter_excel(path: Path) -> Iterator[Dict[str, Any]]:
     df = pd.read_excel(path)
     for _, row in df.iterrows():
-        # Convert to dict similar to jsonl
         r = {
-            "paper_id": str(row.get("doi", "")),
+            "paper_id": _clean_excel_value(row.get("doi")),
             "metadata": {
-                "title": str(row.get("title", "")),
-                "journal": str(row.get("journal", "")),
+                "title": _clean_excel_value(row.get("title")) or "",
+                "journal": _clean_excel_value(row.get("journal")) or "",
                 "year": row.get("year"),
             },
-            "Topic_L1": str(row.get("Topic_L1", "")),
-            "Topic_L2": str(row.get("Topic_L2", "")),
-            "study_type": str(row.get("study_type", "")),
+            "Topic_L1": _clean_excel_value(row.get("Topic_L1")),
+            "Topic_L2": _clean_excel_value(row.get("Topic_L2")),
+            "study_type": _clean_excel_value(row.get("study_type")) or "",
         }
         yield r
 
 
 def _norm(x: Optional[str]) -> str:
-    x = (x or "").strip()
-    return x if x else "Unlabeled"
+    if x is None:
+        return "Unlabeled"
+    s = str(x).strip()
+    if not s or s.lower() == "nan":
+        return "Unlabeled"
+    return s
 
 
 TOP_RE = re.compile(r"^([A-F])(\d+)?([a-z])?$")  # e.g., A1a, A1, A, F2b
@@ -124,7 +135,6 @@ def split_topics(topicl1: Optional[str], topicl2: Optional[str]) -> tuple[str, s
     """
     Returns (L0, L1, L2)
 
-    Desired behavior:
     - topicl1="A",  topicl2="A1"  -> ("A", "A1", "Unlabeled")
     - topicl1="A1", topicl2="a"   -> ("A", "A1", "a")
     - topicl1="A1a"               -> ("A", "A1", "a")
@@ -134,30 +144,33 @@ def split_topics(topicl1: Optional[str], topicl2: Optional[str]) -> tuple[str, s
     l1_raw = _norm(topicl1)
     l2_raw = _norm(topicl2)
 
-    if l1_raw == "Unlabeled":
-        return ("Unlabeled", "Unlabeled", l2_raw)
+    # 완전 결측이면 Unlabeled 한 단계만
+    if l1_raw == "Unlabeled" and l2_raw == "Unlabeled":
+        return ("Unlabeled", "Unlabeled", "Unlabeled")
 
-    # 1) topicl1 이 A/B/C/D/E 처럼 대분류 코드이고
-    #    topicl2 가 A1/B2 같은 중분류 코드면,
-    #    topicl2 를 실제 L1로 올려서 중복 노드 제거
+    # topicl1만 없고 topicl2만 있으면 topicl2를 l1로 승격
+    if l1_raw == "Unlabeled" and l2_raw != "Unlabeled":
+        if re.match(r"^[A-F]\d+$", l2_raw):
+            return (l2_raw[0], l2_raw, "Unlabeled")
+        return ("Unlabeled", l2_raw, "Unlabeled")
+
+    # topicl1이 A, topicl2가 A1이면 중복 A 제거
     if re.match(r"^[A-F]$", l1_raw) and re.match(r"^[A-F]\d+$", l2_raw):
         return (l1_raw, l2_raw, "Unlabeled")
 
-    # 2) 일반적인 A1, B2, C1 처리
     m = TOP_RE.match(l1_raw)
     if not m:
         if l1_raw and l1_raw[0] in list("ABCDEF"):
             return (l1_raw[0], l1_raw, l2_raw)
         return ("Unlabeled", l1_raw, l2_raw)
 
-    letter = m.group(1)   # A
-    num = m.group(2)      # 1
-    tail = m.group(3)     # a
+    letter = m.group(1)
+    num = m.group(2)
+    tail = m.group(3)
 
     l0 = letter
     l1 = f"{letter}{num}" if num else letter
 
-    # topicl1이 A1a 같이 이미 소분류까지 포함한 경우
     if (l2_raw == "Unlabeled") and tail:
         l2 = tail
     else:
