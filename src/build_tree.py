@@ -6,6 +6,7 @@ import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
+import pandas as pd
 
 
 def iter_jsonl(path: Path) -> Iterator[Dict[str, Any]]:
@@ -16,6 +17,24 @@ def iter_jsonl(path: Path) -> Iterator[Dict[str, Any]]:
                 yield json.loads(line)
 
 
+def iter_excel(path: Path) -> Iterator[Dict[str, Any]]:
+    df = pd.read_excel(path)
+    for _, row in df.iterrows():
+        # Convert to dict similar to jsonl
+        r = {
+            "paper_id": str(row.get("doi", "")),
+            "metadata": {
+                "title": str(row.get("title", "")),
+                "journal": str(row.get("journal", "")),
+                "year": row.get("year"),
+            },
+            "Topic_L1": str(row.get("Topic_L1", "")),
+            "Topic_L2": str(row.get("Topic_L2", "")),
+            "study_type": str(row.get("study_type", "")),
+        }
+        yield r
+
+
 def _norm(x: Optional[str]) -> str:
     x = (x or "").strip()
     return x if x else "Unlabeled"
@@ -23,35 +42,25 @@ def _norm(x: Optional[str]) -> str:
 
 TOP_RE = re.compile(r"^([A-F])(\d+)?([a-z])?$")  # e.g., A1a, A1, A, F2b
 
-TOPIC_L0_LABEL = {
-    "A": "Insurance Demand · Consumer Choice",
-    "B": "Loss Modeling · Claims · Pricing · Operations (incl. fraud, triage)",
-    "C": "Catastrophe · Climate · Reinsurance · ILS",
-    "D": "Cyber · Technology Risk",
-    "E": "Finance & Macro-Finance Links",
-    "F": "Regulation · Accounting · Disclosure · Governance",
+TOPIC_L1_LABEL = {
+    "A": "Insurance Demand & Household Choice",
+    "B": "Insurance Operations & Pricing & Claim",
+    "C": "Emerging risk",
+    "D": "Risk Transfer & Financial Intermediation",
+    "E": "Regulation, Accounting, Governance",
 }
 
-TOPIC_L1_LABEL = {
-    "A1": "Retirement, Longevity, LTC",
-    "A2": "Health insurance",
-    "A3": "Index, agri insurance & consumer information design",
-    "B1": "Claim frequency, severity & loss prediction",
-    "B2": "Reserving, claims development, IBNR",
-    "B3": "Claims operations & fraud, verification",
-    "B4": "Underwriting, risk classification & information frictions",
-    "C1": "Nat-cat & climate extremes: losses, exposure, insurance outcomes",
-    "C2": "Reinsurance: capacity, pricing cycles, supply frictions",
-    "C3": "CAT bonds, ILS: issuance, spreads, triggers, basis risk",
-    "D1": "Cyber risk",
-    "D2": "AI, Model risk & automation in insurance",
-    "E1": "Risk premia & asset pricing",
-    "E2": "Intermediation, systemic risk & financial stability",
-    "E3": "Climate finance",
-    "F1": "Solvency, capital regulation & market discipline",
-    "F2": "Insurance & pension accounting, valuation",
-    "F3": "Risk governance & culture",
-    "F4": "Insurance market regulation, competition & availability",
+TOPIC_L2_LABEL = {
+    "A1": "Health, Retirement, Longevity & Protection Choice",
+    "A2": "General Insurance Demand, Take-up & Consumer Information",
+    "B1": "Pricing, Underwriting, Risk Classification",
+    "B2": "Claim, Reserving, Operations",
+    "C1": "Nat-Cat, Climate Risk",
+    "C2": "Cyber Risk, AI and Model Risk, Automation and Digital Risk",
+    "D1": "Insurance Risk Transfer Markets",
+    "D2": "Financing Pricing, Intermediation",
+    "E1": "Capital, Accounting, Disclosure",
+    "E2": "Governance, Competition, Market Regulation",
 }
 
 
@@ -68,20 +77,41 @@ def _first(x: Any) -> Optional[str]:
 
 def get_topic_fields(r: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
     """
-    Support both schemas:
-        - new: topicl1/topicl2 (string)
-        - old: topic_l1/topic_l2 (list like ["A"], ["A1"])
+    Support multiple column name variants:
+        - topicl1/topicl2
+        - topic_l1/topic_l2
+        - Topic_L1/Topic_L2
+        - Topic_L/Topic_L
     Returns (topicl1, topicl2) as strings or None
     """
-    t1 = _first(r.get("topicl1"))
-    t2 = _first(r.get("topicl2"))
+    def _get_topic_field(keys: list[str]) -> Optional[str]:
+        for key in keys:
+            value = _first(r.get(key))
+            if value is not None:
+                return value
+        return None
+
+    t1 = _get_topic_field([
+        "topicl1",
+        "topic_l1",
+        "Topic_L1",
+        "Topic_L",
+        "topic_l",
+        "topicL1",
+    ])
+    t2 = _get_topic_field([
+        "topicl2",
+        "topic_l2",
+        "Topic_L2",
+        "Topic_L",
+        "topic_l",
+        "topicL2",
+    ])
 
     if t1 is None and t2 is None:
-        # fallback to old schema
-        old_l1 = _first(r.get("topic_l1"))  # e.g., "A"
-        old_l2 = _first(r.get("topic_l2"))  # e.g., "A1"
-        # 보통 old_l2가 더 정보가 많으니 topicl1에 넣고, topicl2는 비워둠
-        # (A1a 같은 형태가 오면 split_topics가 알아서 처리 가능)
+        # fallback using the less-specific fields as a safety net
+        old_l1 = _get_topic_field(["topic_l1", "Topic_L1", "Topic_L", "topic_l"])
+        old_l2 = _get_topic_field(["topic_l2", "Topic_L2", "Topic_L", "topic_l"])
         if old_l2:
             t1 = old_l2
         elif old_l1:
@@ -133,7 +163,7 @@ def split_topics(topicl1: Optional[str], topicl2: Optional[str]) -> tuple[str, s
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--papers", default="data/papers.jsonl")
+    ap.add_argument("--papers", default="data/RQ_generator_dataset.xlsx")
     ap.add_argument("--out", default="tree.json")
     ap.add_argument(
     "--include_theory",
@@ -152,7 +182,12 @@ def main():
 
     SELF_KEY = "__SELF__"  # topicl2 없는 paper를 L1에 붙이기 위한 내부 키
 
-    for r in iter_jsonl(papers_path):
+    if papers_path.suffix.lower() == '.xlsx':
+        paper_iter = iter_excel(papers_path)
+    else:
+        paper_iter = iter_jsonl(papers_path)
+
+    for r in paper_iter:
         pid = (r.get("paper_id") or "").strip()
         if not pid:
             continue
@@ -193,16 +228,16 @@ def main():
         return (2, x)
 
     for l0 in sorted(tree.keys(), key=_sort_key_label):
-        l0_label = TOPIC_L0_LABEL.get(l0, "")
+        l0_label = TOPIC_L1_LABEL.get(l0, "")
         node_l0 = {"name": f"{l0}. {l0_label}" if l0_label else l0, "children": [], "topic_code": l0}
 
 
         for l1 in sorted(tree[l0].keys(), key=_sort_key_label):
             l2map = tree[l0][l1]
 
-            # ✅ L1에 직접 붙는 paper들(= topicl2 없던 것들)
+            # ✅ L2에 직접 붙는 paper들(= topicl2 없던 것들)
             self_papers = l2map.get(SELF_KEY, [])
-            l1_label = TOPIC_L1_LABEL.get(l1, "")
+            l1_label = TOPIC_L2_LABEL.get(l1, "")
             node_l1 = {"name": f"{l1}. {l1_label}" if l1_label else l1, "children": [], "topic_code": l1}
 
 

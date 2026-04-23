@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 
 import streamlit as st
 from graphviz import Digraph
+import pandas as pd
 
 
 # -----------------------------
@@ -32,20 +33,50 @@ def norm_pid(pid: str) -> str:
         pid = pid[4:]
     return pid
 
-def load_papers_index(papers_jsonl_path: str) -> dict:
+def load_papers_index(papers_excel_path: str) -> dict:
     """
     normalized paper_id -> paper dict
     """
     idx = {}
-    p = Path(papers_jsonl_path)
+    p = Path(papers_excel_path)
     if not p.exists():
         return idx
 
-    for r in iter_jsonl(p):
-        raw = (r.get("paper_id") or "").strip()
-        pid = norm_pid(raw)
+    df = pd.read_excel(p)
+    for _, row in df.iterrows():
+        doi = str(row.get("doi", "")).strip()
+        if not doi:
+            continue
+        pid = norm_pid(doi)
+        
+        # Convert row to dict similar to jsonl structure
+        paper = {
+            "paper_id": doi,
+            "metadata": {
+                "title": str(row.get("title", "")),
+                "journal": str(row.get("journal", "")),
+                "year": row.get("year"),
+                "authors": [{"family": str(row.get("first_author", ""))}],  # Simplified
+            },
+            "empirical_analysis": {
+                "Dependent_Variable_Y": str(row.get("Dependent_Variable_Y", "")),
+                "Proxy_for_Y": str(row.get("Proxy_for_Y", "")),
+                "Independent_Variable_X": str(row.get("Independent_Variable_X", "")),
+                "Proxy_for_X": str(row.get("Proxy_for_X", "")),
+                "methodology": str(row.get("methodology", "")),
+                "dataset_and_period": str(row.get("dataset_and_period", "")),
+                "control_variables": str(row.get("control_variables", "")),
+                "unit_of_analysis": str(row.get("unit_of_analysis", "")),
+                "results": str(row.get("results", "")),
+                "keywords": str(row.get("keywords", "")),
+                "Topic_L1": str(row.get("Topic_L1", "")),
+            },
+            "Topic_L1": str(row.get("Topic_L1", "")),
+            "Topic_L2": str(row.get("Topic_L2", "")),
+            "study_type": str(row.get("study_type", "")),
+        }
         if pid:
-            idx[pid] = r
+            idx[pid] = paper
     return idx
 
 
@@ -172,7 +203,7 @@ def extract_dependent_y(paper: dict) -> str | None:
     ea = paper.get("empirical_analysis")
     if not isinstance(ea, dict):
         return None
-    y = ea.get("dependent_variable_Y")
+    y = ea.get("Dependent_Variable_Y")
     if not y:
         return None
     return str(y).strip() if str(y).strip() else None
@@ -182,7 +213,7 @@ def extract_summary_subject(paper: dict) -> str | None:
     if not isinstance(ea, dict):
         return None
 
-    subj = ea.get("subject")
+    subj = ea.get("Topic_L1")
     # subject가 list인 경우 (예시처럼)
     if isinstance(subj, list) and len(subj) > 0:
         s = str(subj[0]).strip()
@@ -296,7 +327,7 @@ st.title("Insurance & Risk Management Literature Tree (Graph)")
 
 # Paths
 TREE_PATH = "tree.json"
-PAPERS_PATH = "data/papers.jsonl"  # 필요 시 변경
+PAPERS_PATH = "data/RQ_generator_dataset.xlsx"  # 필요 시 변경
 
 
 
