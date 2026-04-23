@@ -454,7 +454,7 @@ else:
     # Topline: Y 리스트 + 개수
     # Topline: Y 리스트 + 개수
     rows = []
-    for y, ids in sorted(y_to_papers.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+    for y, ids in sorted(y_to_papers.items(), key=lambda kv: (kv[0].lower(), -len(kv[1]))):
         rows.append({"Dependent_Variable_Y": y, "n_papers": len(ids)})
 
     st.markdown("### Dependent variables (Y) under this node")
