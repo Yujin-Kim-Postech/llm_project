@@ -120,46 +120,50 @@ def get_topic_fields(r: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
 
     return t1, t2
 
-
 def split_topics(topicl1: Optional[str], topicl2: Optional[str]) -> tuple[str, str, str]:
     """
     Returns (L0, L1, L2)
-        L0: A/B/C/D/E/F/Unlabeled
-        L1: A1, B3, ...
-        L2: a/b/c/Unlabeled
-    Supports:
-        - topicl1="A1", topicl2="a"
-        - topicl1="A1a" (topicl2 missing)
-        - topicl1 missing => Unlabeled
+
+    Desired behavior:
+    - topicl1="A",  topicl2="A1"  -> ("A", "A1", "Unlabeled")
+    - topicl1="A1", topicl2="a"   -> ("A", "A1", "a")
+    - topicl1="A1a"               -> ("A", "A1", "a")
+    - topicl1 missing             -> ("Unlabeled", "Unlabeled", "Unlabeled")
     """
+
     l1_raw = _norm(topicl1)
     l2_raw = _norm(topicl2)
 
     if l1_raw == "Unlabeled":
         return ("Unlabeled", "Unlabeled", l2_raw)
 
+    # 1) topicl1 이 A/B/C/D/E 처럼 대분류 코드이고
+    #    topicl2 가 A1/B2 같은 중분류 코드면,
+    #    topicl2 를 실제 L1로 올려서 중복 노드 제거
+    if re.match(r"^[A-F]$", l1_raw) and re.match(r"^[A-F]\d+$", l2_raw):
+        return (l1_raw, l2_raw, "Unlabeled")
+
+    # 2) 일반적인 A1, B2, C1 처리
     m = TOP_RE.match(l1_raw)
     if not m:
-        # fallback: group by first char if looks like A~F
         if l1_raw and l1_raw[0] in list("ABCDEF"):
             return (l1_raw[0], l1_raw, l2_raw)
         return ("Unlabeled", l1_raw, l2_raw)
 
-    letter = m.group(1)                         # A
-    num = m.group(2)                            # 1
-    tail = m.group(3)                           # a
+    letter = m.group(1)   # A
+    num = m.group(2)      # 1
+    tail = m.group(3)     # a
 
     l0 = letter
     l1 = f"{letter}{num}" if num else letter
 
-    # if topicl2 is missing but topicl1 already contains tail (A1a)
+    # topicl1이 A1a 같이 이미 소분류까지 포함한 경우
     if (l2_raw == "Unlabeled") and tail:
         l2 = tail
     else:
         l2 = l2_raw
 
     return (l0, l1, l2)
-
 
 def main():
     ap = argparse.ArgumentParser()
