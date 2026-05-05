@@ -1129,11 +1129,12 @@ if page == "Node Explorer":
         for i, row in enumerate(paper_list, start=1):
             table_rows.append({
                 "No": i,
-                "Title": row.get("title", ""),
-                "Author (Year)": row.get("citation", ""),
                 "Journal": row.get("journal", ""),
+                "Author (Year)": row.get("citation", ""),
                 "Dependent Y": row.get("dependent_y", ""),
+                "Independent X": row.get("independent_x", ""),
                 "Summary": row.get("summary", ""),
+                "Title": row.get("title", ""),
                 "DOI": f"https://doi.org/{row.get('doi','')}" if row.get("doi") else ""
             })
 
