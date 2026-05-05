@@ -602,7 +602,7 @@ def build_rq_prompt(input_x, input_y, papers_in_node, max_papers=10):
 
     context_lines = []
 
-    for i, p in enumerate(papers_in_node[:max_papers], start=1):
+    for i, p in enumerate(target_papers[:max_papers], start=1):
         title = paper_title(p)
         citation = paper_citation_brief(p)
         journal = paper_journal(p)
