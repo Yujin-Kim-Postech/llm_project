@@ -69,6 +69,7 @@ def load_papers_index(papers_excel_path: str) -> dict:
             },
             "empirical_analysis": {
                 "Dependent_Variable_Y": str(row.get("Dependent_Variable_Y", "")),
+                "Y_Category": str(row.get("Y_Category", "")),
                 "Proxy_for_Y": str(row.get("Proxy_for_Y", "")),
                 "Independent_Variable_X": str(row.get("Independent_Variable_X", "")),
                 "Proxy_for_X": str(row.get("Proxy_for_X", "")),
@@ -208,14 +209,16 @@ def collect_paper_ids_under(node: dict) -> list[str]:
 # -----------------------------
 # Dependent Y extraction
 # -----------------------------
-def extract_dependent_y(paper: dict) -> str | None:
+def extract_y_category(paper: dict) -> str | None:
     ea = paper.get("empirical_analysis")
     if not isinstance(ea, dict):
         return None
-    y = ea.get("Dependent_Variable_Y")
-    if not y:
-        return None
-    return str(y).strip() if str(y).strip() else None
+
+    y_cat = ea.get("Y_Category")
+    if y_cat and str(y_cat).strip():
+        return str(y_cat).strip()
+
+    return "(no Y category / missing field)"
 
 def extract_summary_subject(paper: dict) -> str | None:
     ea = paper.get("empirical_analysis")
@@ -436,7 +439,7 @@ else:
     st.subheader(f"Selection: {selected_path}")
     st.caption(f"Papers under this category: {len(paper_ids)}")
 
-    # dependent Y 집계
+    # Y Category 집계
     y_to_papers = defaultdict(list)
     missing = []
 
@@ -445,19 +448,17 @@ else:
         if not p:
             missing.append(pid)
             continue
-        y = extract_dependent_y(p)
-        if y is None:
-            y_to_papers["(no empirical Y / theory / missing field)"].append(pid)
-        else:
-            y_to_papers[y].append(pid)
+
+        y_cat = extract_y_category(p)
+        y_to_papers[y_cat].append(pid)
 
     # Topline: Y 리스트 + 개수
     # Topline: Y 리스트 + 개수
     rows = []
     for y, ids in sorted(y_to_papers.items(), key=lambda kv: (kv[0].lower(), -len(kv[1]))):
-        rows.append({"Dependent_Variable_Y": y, "n_papers": len(ids)})
+        rows.append({"Y_Category": y, "n_papers": len(ids)})
 
-    st.markdown("### Dependent variables (Y) under this node")
+    st.markdown("### Y categories under this node")
     st.dataframe(rows, use_container_width=True, hide_index=True)
 
     # ✅ rows가 비면 여기서 종료 (selectbox 옵션 비어서 터지는 것 방지)
@@ -469,9 +470,9 @@ else:
         st.stop()
 
     # 상세: 선택한 Y의 논문 목록
-    st.markdown("### Papers by Selected Dependent Variables (Y)")
-    y_options = [r["Dependent_Variable_Y"] for r in rows]
-    chosen_y = st.selectbox("## Choose a Dependent Y", y_options)
+    st.markdown("### Papers by Selected Y Category")
+    y_options = [r["Y_Category"] for r in rows]
+    chosen_y = st.selectbox("Choose a Y Category", y_options)
 
     chosen_ids = y_to_papers.get(chosen_y, [])
     paper_list = []
@@ -490,6 +491,7 @@ else:
             "summary": summary,
             "journal": journal,
             "doi": doi,
+            "dependent_y": p.get("empirical_analysis", {}).get("Dependent_Variable_Y", "") if p else "",
         })
 
     # --- 고정 테이블 출력 ---
@@ -499,7 +501,8 @@ else:
     for i, row in enumerate(paper_list, start=1):
         table_rows.append({
             "No": i,
-            "Citation": row.get("citation", ""),
+            "Author (Year)": row.get("citation", ""),
+            "Dependent Y": row.get("dependent_y", ""),
             "Journal": row.get("journal", ""),
             "Title": row.get("title", ""),
             "Summary": row.get("summary", ""),
@@ -517,132 +520,153 @@ else:
         st.warning(f"{len(missing)} paper_ids were in tree.json but not found in {PAPERS_PATH}. (showing first 10)")
         st.code("\n".join(missing[:10]))
 
-import numpy as np
-import os
-import streamlit as st
-from streamlit.errors import StreamlitSecretNotFoundError
-from openai import OpenAI
+def build_rq_prompt(input_x, input_y, papers_in_node, max_papers=10):
+    context_lines = []
 
-@st.cache_resource
-def get_client():
-    api_key = None
-    try:
-        api_key = st.secrets["OPENAI_API_KEY"]
-    except (StreamlitSecretNotFoundError, KeyError):
-        api_key = os.getenv("OPENAI_API_KEY")
+    for i, p in enumerate(papers_in_node[:max_papers], start=1):
+        title = paper_title(p)
+        citation = paper_citation_brief(p)
+        journal = paper_journal(p)
+        x = p.get("empirical_analysis", {}).get("Independent_Variable_X", "")
+        y = p.get("empirical_analysis", {}).get("Dependent_Variable_Y", "")
 
-    if not api_key:
-        st.error("OPENAI_API_KEY가 설정되어 있지 않습니다. (.streamlit/secrets.toml 또는 환경변수로 설정)")
-        st.stop()
+        context_lines.append(
+            f"{i}. Title: {title}\n"
+            f"   Citation: {citation}\n"
+            f"   Journal: {journal}\n"
+            f"   X: {x}\n"
+            f"   Y: {y}"
+        )
 
-    return OpenAI(api_key=api_key)
-
-def cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
-    a = a / (np.linalg.norm(a) + 1e-12)
-    b = b / (np.linalg.norm(b) + 1e-12)
-    return float(np.dot(a, b))
-
-def embed_texts(client: OpenAI, texts: list[str]) -> np.ndarray:
-    resp = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=texts,
-    )
-    return np.array([d.embedding for d in resp.data], dtype=np.float32)
-
-def build_context(papers_in_node: list[dict], max_papers: int = 25) -> str:
-    # title/abstract만 넣어도 충분 (토큰 절약)
-    chunks = []
-    for p in papers_in_node[:max_papers]:
-        title = (p.get("metadata", {}).get("title") or "").strip()
-        abst  = (p.get("metadata", {}).get("abstract") or "").strip()
-        if title:
-            chunks.append(f"- {title}\n  {abst[:500]}")
-    return "\n".join(chunks)
-
-def generate_rqs(client, x, y, context, k=8):
-    schema = {
-        "name": "rq_bundle",
-        "schema": {
-            "type": "object",
-            "properties": {
-                "rqs": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "rq": {"type": "string"},
-                            "x_used": {"type": "string"},
-                            "y_used": {"type": "string"},
-                            "motivation": {"type": "string"},
-                            "suggested_design": {"type": "string"},
-                            "keywords": {"type": "array", "items": {"type": "string"}}
-                        },
-                        "required": ["rq", "x_used", "y_used", "motivation", "suggested_design", "keywords"],
-                        "additionalProperties": False
-                    }
-                }
-            },
-            "required": ["rqs"],
-            "additionalProperties": False
-        },
-        "strict": True
-    }
-
-    x_txt = x if x else "<미입력>"
-    y_txt = y if y else "<미입력>"
+    context_text = "\n".join(context_lines)
 
     prompt = f"""
-You will generate “new” and empirically testable research questions (RQs), avoiding questions that have already been addressed in the literature (see the context below).
+You are an expert academic research advisor in insurance, risk management, 
+and quantitative finance.
 
-User inputs:
-- X: {x_txt}
-- Y: {y_txt}
+Your task is to generate NOVEL research questions that have NOT yet been 
+extensively studied in existing literature.
 
-Rules:
-- If X or Y is <not provided>, fill in the missing side with a “plausible candidate” based on the literature context and domain knowledge, and then generate the RQ.
-- Preserve the user-provided side (X or Y) as much as possible; however, you may refine it into a more specific, measurable definition if needed.
-- Propose {k} RQs, and for each RQ you must include x_used and y_used.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Student Input]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+X (Independent Variable): {input_x if input_x else "(not provided)"}
+Y (Dependent Variable): {input_y if input_y else "(not provided)"}
 
-Literature context:
-{context}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Relevant Prior Studies — OPTIONAL METHODOLOGICAL RESOURCES]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{context_text}
+
+IMPORTANT:
+- The prior studies may contain advanced methodologies.
+- If relevant, you are encouraged (but NOT required) to incorporate their 
+  methodological insights (e.g., tail risk modeling, dependence structures, 
+  structural break detection).
+- Only use these methods when they naturally fit the research question.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[NOVELTY REQUIREMENTS — MANDATORY]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Each research question MUST satisfy at least TWO of the following:
+
+① Methodological novelty  
+   (non-standard methods, advanced econometrics, or uncommon modeling approaches)
+
+② Contextual novelty  
+   (under-studied populations, dynamics, or market conditions)
+
+③ Variable-combination novelty  
+   (new mechanisms, nonlinearities, or overlooked interactions)
+
+AVOID:
+- Simple DID-style causal questions
+- Overused mediation (e.g., basic risk perception)
+- Generic cross-country comparisons
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Task]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Generate 5 NOVEL research questions connecting X → Y.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Instructions]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Generate EXACTLY 5 research questions.
+2. Each question must correspond to ONE of the following types:
+   - Causal relationship
+   - Moderating effect
+   - Mediating mechanism
+   - Comparison across contexts
+   - Policy or practical implication
+
+3. For EACH question, provide:
+
+a. Research Question
+
+b. Novelty Check:
+   - Criteria satisfied: (choose at least two among ① ② ③)
+   - Why novel:
+
+c. Research Gap:
+   - What prior literature has NOT addressed
+
+d. Rationale:
+   - Why it is meaningful
+
+e. Data:
+   - Required dataset
+
+f. Method:
+   - Suggested empirical strategy
+   - Use advanced methods ONLY when appropriate
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Output Format]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[Type: Causal]
+
+Research Question:
+...
+
+Novelty Check:
+- Criteria satisfied:
+- Why novel:
+
+Research Gap:
+...
+
+Rationale:
+...
+
+Data:
+...
+
+Method:
+...
+
+(Repeat for Moderating, Mediating, Comparison, Policy)
 """
-
-    completion = client.chat.completions.create(
-        model="gpt-4o-2024-08-06",
-        messages=[
-            {"role": "system", "content": "You are a careful research assistant."},
-            {"role": "user", "content": prompt},
-        ],
-        response_format={"type": "json_schema", "json_schema": schema},
-        temperature=0.7,
-    )
-
-    return json.loads(completion.choices[0].message.content)["rqs"]
-
-def novelty_filter(client: OpenAI, rqs: list[dict], existing_texts: list[str], thr: float = 0.82):
-    # existing_texts: 보통 title + abstract 결합한 fingerprint 추천
-    rq_texts = [r["rq"] for r in rqs]
-    E = embed_texts(client, existing_texts)     # (N, d)
-    Q = embed_texts(client, rq_texts)           # (K, d)
-
-    kept = []
-    for i, r in enumerate(rqs):
-        sims = [cosine_sim(Q[i], E[j]) for j in range(len(existing_texts))]
-        mx = max(sims) if sims else 0.0
-        r["max_similarity"] = mx
-        r["is_novel_wrt_dataset"] = (mx < thr)
-        kept.append(r)
-    return kept
+    return prompt.strip()
 
 # -----------------------------
 # Streamlit UI skeleton
 # -----------------------------
-st.title("RQ Generator")
+st.title("RQ PromptGenerator")
+
+st.info("""
+이 도구는 입력한 X와 Y를 기반으로 데이터셋 내 유사 연구를 참고하여
+생성형 AI에 입력할 수 있는 Research Question 생성용 프롬프트를 제공합니다.
+
+※ 본 시스템은 생성형 AI를 직접 호출하지 않습니다.
+프롬프트를 복사하여 ChatGPT, Claude, Gemini 등에 붙여넣어 사용하세요.
+""")
 
 x = st.text_input("X", placeholder="(미입력 가능)")
 y = st.text_input("Y", placeholder="(미입력 가능)")
 
-run = st.button("RQ 생성", disabled=not (x.strip() or y.strip()))
+run = st.button("RQ Prompt 생성", disabled=not (x.strip() or y.strip()))
 
 if run:
     if not (x.strip() or y.strip()):
@@ -650,31 +674,15 @@ if run:
         st.stop()
 
     if len(papers_in_node) == 0:
-        st.warning("현재 선택된 노드에서 papers.jsonl로 매칭된 논문이 없어 컨텍스트가 비어있습니다.")
-        # 그래도 생성은 가능하게 두려면 st.stop()은 하지 말고 진행
-        # st.stop()
+        st.warning("현재 선택된 노드에서 사용할 논문이 없습니다.")
 
-    client = get_client()
+    prompt = build_rq_prompt(
+        input_x=x.strip(),
+        input_y=y.strip(),
+        papers_in_node=papers_in_node,
+        max_papers=10
+    )
 
-    x_in = x.strip() or None
-    y_in = y.strip() or None
-
-    context = build_context(papers_in_node, max_papers=25)
-
-    rqs = generate_rqs(client, x_in, y_in, context, k=8)
-
-    existing_texts = []
-    for p in papers_in_node:
-        md = p.get("metadata", {}) or {}
-        existing_texts.append((md.get("title", "") + " " + md.get("abstract", "")).strip())
-
-    # existing_texts가 비면 임베딩 호출하지 않도록 처리
-    if not any(t for t in existing_texts):
-        for r in rqs:
-            r["max_similarity"] = 0.0
-            r["is_novel_wrt_dataset"] = True
-        scored = rqs
-    else:
-        scored = novelty_filter(client, rqs, existing_texts, thr=0.82)
-
-    st.dataframe(scored, use_container_width=True)
+    st.markdown("### 생성형 AI에 사용할 프롬프트")
+    st.caption("📋 우측 상단 복사 버튼을 눌러 ChatGPT / Claude / Gemini에 붙여넣으세요")
+    st.code(prompt, language="text")

@@ -1,0 +1,19 @@
+{
+  "version": "v1",
+    "top_categories": [
+        "Insurance Claims & Loss Outcomes",
+        "Insurance Liabilities, Reserves & Actuarial Quantities",
+        "Mortality, Longevity & Demographic Risk",
+        "Pricing, Premiums & Product Valuation",
+        "Capital, Solvency & Risk Capital",
+        "Risk Measures & Tail Risk",
+        "Investment, Portfolio & Asset Performance",
+        "Firm Performance & Financial Outcomes",
+        "Insurance Demand, Choice & Policyholder Behavior",
+        "Contract Design, Strategy & Optimization",
+        "Operational Risk, Cyber Risk & Systemic Risk",
+        "Behavioral, Preferences & Decision-Making",
+        "Socioeconomic & Policy Outcomes",
+        "Other"
+    ]
+}
