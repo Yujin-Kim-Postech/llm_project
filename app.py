@@ -520,6 +520,22 @@ else:
         st.warning(f"{len(missing)} paper_ids were in tree.json but not found in {PAPERS_PATH}. (showing first 10)")
         st.code("\n".join(missing[:10]))
 
+def relevance_score(p, input_x, input_y):
+    text = " ".join([
+        str(p.get("metadata", {}).get("title", "")),
+        str(p.get("empirical_analysis", {}).get("Independent_Variable_X", "")),
+        str(p.get("empirical_analysis", {}).get("Dependent_Variable_Y", "")),
+        str(p.get("empirical_analysis", {}).get("keywords", "")),
+        str(p.get("empirical_analysis", {}).get("results", ""))
+    ]).lower()
+
+    score = 0
+    for term in (input_x + " " + input_y).lower().split():
+        if term in text:
+            score += 1
+
+    return score
+
 def infer_variable_role(var_text: str, var_name: str = "X") -> str:
     v = (var_text or "").strip().lower()
 
@@ -582,42 +598,53 @@ def infer_variable_role(var_text: str, var_name: str = "X") -> str:
     )
 
 def build_rq_prompt(input_x, input_y, papers_in_node, max_papers=10):
-
-    def get_year(p):
-        try:
-            return int(p.get("metadata", {}).get("year") or 0)
-        except:
-            return 0
-
-    # 1. 최신순 정렬
-    papers_sorted = sorted(papers_in_node, key=get_year, reverse=True)
-
-    # 2. 최근 논문 우선 (2018 이후)
-    papers_recent = [p for p in papers_sorted if get_year(p) >= 2018]
-
-    if len(papers_recent) >= max_papers:
-        target_papers = papers_recent
+    # ✅ Step 2 — 필터링 + fallback
+    papers_relevant = [
+        p for p in papers_in_node
+        if relevance_score(p, input_x, input_y) >= 2
+    ]
+    if len(papers_relevant) >= 5:
+        target_papers = papers_relevant
+        use_context = True
     else:
-        target_papers = papers_sorted
+        target_papers = []
+        use_context = False
 
+    # ✅ Step 3 — context_text 조건부 생성
     context_lines = []
 
     for i, p in enumerate(target_papers[:max_papers], start=1):
-        title = paper_title(p)
-        citation = paper_citation_brief(p)
-        journal = paper_journal(p)
-        x = p.get("empirical_analysis", {}).get("Independent_Variable_X", "")
-        y = p.get("empirical_analysis", {}).get("Dependent_Variable_Y", "")
-
         context_lines.append(
-            f"{i}. Title: {title}\n"
-            f"   Citation: {citation}\n"
-            f"   Journal: {journal}\n"
-            f"   X: {x}\n"
-            f"   Y: {y}"
+            f"{i}. Title: {paper_title(p)}\n"
+            f"   Citation: {paper_citation_brief(p)}\n"
+            f"   Journal: {paper_journal(p)}\n"
         )
 
     context_text = "\n".join(context_lines)
+
+    # 🔥 Step 4 — 프롬프트 분기 (핵심)
+    if use_context:
+        knowledge_block = f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[RELEVANT PRIOR STUDIES]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The following studies are relevant to X and Y.
+
+{context_text}
+
+- Use them to identify research gaps and positioning.
+- Do NOT simply replicate them.
+- Extend or challenge their assumptions.
+"""
+    else:
+        knowledge_block = """
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[KNOWLEDGE SOURCE]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Identify research gaps using your own knowledge of the academic literature 
+  in insurance, risk management, and finance.
+- No directly relevant prior studies are provided.
+"""
 
     x_interpretation = infer_variable_role(input_x, "X")
     y_interpretation = infer_variable_role(input_y, "Y")
@@ -657,25 +684,15 @@ Do NOT change the interpretation across questions.
 - Give more weight to recent literature (last 5–10 years) when identifying research gaps.
 - Avoid generating research questions that were already addressed in recent studies.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[PRIOR STUDIES USAGE RULE]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Use prior studies ONLY for methodological inspiration.
-- Do NOT force topical connections if they are unrelated to X and Y.
-- If prior studies are dominated by one method, use it for at most ONE question where it fits naturally.
-- Identify research gaps primarily using your own knowledge of insurance and risk management literature.
+{knowledge_block}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[Relevant Prior Studies — OPTIONAL METHODOLOGICAL RESOURCES]
+[LITERATURE CONSISTENCY]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{context_text}
-
-IMPORTANT:
-- The prior studies are ONLY a partial and potentially biased sample.
-- You MUST NOT over-rely on a single methodology, theory, or perspective.
-- Use them as OPTIONAL inspiration, not as the primary direction.
-- If one methodology dominates (e.g., EVT, tail risk), actively diversify beyond it.
-- You are encouraged to incorporate advanced methods ONLY when they naturally fit.
+- Ensure that each research question is consistent with existing literature 
+  but extends it in a meaningful way.
+- Avoid proposing questions that are already well-established.
+- Focus on identifying under-explored mechanisms, contexts, or interactions.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [INTERPRETATION QUALITY REQUIREMENT]
