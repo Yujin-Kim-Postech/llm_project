@@ -1089,6 +1089,7 @@ if page == "Node Explorer":
                 "journal": journal,
                 "doi": doi,
                 "dependent_y": p.get("empirical_analysis", {}).get("Dependent_Variable_Y", "") if p else "",
+                "independent_x": p.get("empirical_analysis", {}).get("Independent_Variable_X", "") if p else "",
             })
 
         st.markdown(f"#### **{chosen_y}** (n= {len(paper_list)})")
