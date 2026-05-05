@@ -636,25 +636,34 @@ X (Independent Variable): {input_x if input_x else "(not provided)"}
 Y (Dependent Variable): {input_y if input_y else "(not provided)"}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[Variable Interpretation — CRITICAL]
+[VARIABLE INTERPRETATION — DECLARE FIRST]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-X interpretation:
-{x_interpretation}
+Before generating research questions, explicitly declare:
 
-Y interpretation:
-{y_interpretation}
+- X is interpreted as: [your chosen definition]
+- X measurable proxy: [specific variable]
 
-- If X or Y is broad, ambiguous, or not directly measurable, first define ONE precise research interpretation.
-- Do NOT assume multiple meanings at once.
-- Use the most academically plausible interpretation based on insurance, risk management, business, or finance research.
-- Each research question must clearly explain how the interpreted X connects to the interpreted Y.
-- X and Y must be operationalized as measurable empirical variables.
+- Y is interpreted as: [your chosen definition]
+- Y measurable proxy: [specific variable]
+
+- Rationale for interpretation: [1–2 sentences]
+
+All research questions MUST be consistent with this declaration.
+Do NOT change the interpretation across questions.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [RECENCY PRIORITY]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - Give more weight to recent literature (last 5–10 years) when identifying research gaps.
 - Avoid generating research questions that were already addressed in recent studies.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[PRIOR STUDIES USAGE RULE]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Use prior studies ONLY for methodological inspiration.
+- Do NOT force topical connections if they are unrelated to X and Y.
+- If prior studies are dominated by one method, use it for at most ONE question where it fits naturally.
+- Identify research gaps primarily using your own knowledge of insurance and risk management literature.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [Relevant Prior Studies — OPTIONAL METHODOLOGICAL RESOURCES]
@@ -667,6 +676,13 @@ IMPORTANT:
 - Use them as OPTIONAL inspiration, not as the primary direction.
 - If one methodology dominates (e.g., EVT, tail risk), actively diversify beyond it.
 - You are encouraged to incorporate advanced methods ONLY when they naturally fit.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[INTERPRETATION QUALITY REQUIREMENT]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- The interpretation must be specific, testable, and realistic.
+- Avoid vague definitions such as "general disclosure" or "overall demand".
+- The proxy must be observable in real-world data (e.g., financial filings, surveys, administrative data).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [NOVELTY REQUIREMENTS — MANDATORY]
