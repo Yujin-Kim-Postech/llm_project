@@ -521,83 +521,85 @@ else:
         st.code("\n".join(missing[:10]))
 
 def infer_variable_role(var_text: str, var_name: str = "X") -> str:
-    """
-    입력된 X/Y가 어떤 성격의 변수인지 대략 분류하여
-    프롬프트 안에서 명확한 해석을 유도하기 위한 설명을 생성.
-    """
     v = (var_text or "").strip().lower()
 
     if not v:
         return f"{var_name} is not provided."
 
-    document_keywords = [
-        "report", "reports", "filing", "filings", "disclosure", "statement",
-        "annual report", "interim report", "10-k", "10-q", "sfcr", "rsr"
+    role_patterns = {
+        "disclosure/document-based variable": [
+            "report", "reports", "filing", "filings", "disclosure", "statement",
+            "annual report", "interim report", "10-k", "10-q", "sfcr", "rsr"
+        ],
+        "external shock or event": [
+            "pandemic", "covid", "crisis", "war", "disaster", "earthquake",
+            "flood", "shock", "recession"
+        ],
+        "policy or regulatory variable": [
+            "regulation", "policy", "law", "reform", "mandate", "supervision",
+            "capital requirement", "solvency"
+        ],
+        "behavioral or perception-based variable": [
+            "risk aversion", "risk perception", "trust", "literacy", "awareness",
+            "preference", "behavior", "attitude"
+        ],
+        "market or macroeconomic condition": [
+            "competition", "premium", "price", "interest rate", "inflation",
+            "unemployment", "market condition", "gdp"
+        ],
+        "demand or adoption outcome": [
+            "demand", "purchase", "adoption", "take-up", "uptake", "enrollment",
+            "subscription", "renewal", "lapse"
+        ],
+        "loss or risk outcome": [
+            "loss", "losses", "claim", "claims", "default", "failure",
+            "bankruptcy", "operational risk", "mortality", "morbidity"
+        ],
+        "performance outcome": [
+            "performance", "profitability", "revenue", "growth", "productivity",
+            "roe", "roa", "margin"
+        ],
+    }
+
+    matched_roles = [
+        role for role, keywords in role_patterns.items()
+        if any(k in v for k in keywords)
     ]
 
-    shock_keywords = [
-        "pandemic", "covid", "crisis", "financial crisis", "war",
-        "disaster", "earthquake", "flood", "shock"
-    ]
-
-    policy_keywords = [
-        "regulation", "policy", "law", "reform", "mandate",
-        "supervision", "capital requirement", "solvency"
-    ]
-
-    behavioral_keywords = [
-        "risk aversion", "risk perception", "trust", "literacy",
-        "awareness", "preference", "behavior"
-    ]
-
-    market_keywords = [
-        "competition", "premium", "price", "interest rate",
-        "inflation", "unemployment", "market condition"
-    ]
-
-    if any(k in v for k in document_keywords):
+    if matched_roles:
+        role_text = "; ".join(matched_roles)
         return (
-            f"{var_name} appears to be a disclosure/document-based variable. "
-            f"Treat it as an information source or textual disclosure mechanism, "
-            f"not as a vague document label. The model should specify whether it uses "
-            f"content, tone, risk disclosure, frequency, quality, or timing of the document."
-        )
-
-    if any(k in v for k in shock_keywords):
-        return (
-            f"{var_name} appears to be an external shock or event. "
-            f"Treat it as a time-varying or region-varying exposure, and clarify "
-            f"whether it is measured by severity, timing, duration, or intensity."
-        )
-
-    if any(k in v for k in policy_keywords):
-        return (
-            f"{var_name} appears to be a policy or regulatory variable. "
-            f"Treat it as an institutional change, rule intensity, or compliance burden, "
-            f"and clarify the timing and affected population."
-        )
-
-    if any(k in v for k in behavioral_keywords):
-        return (
-            f"{var_name} appears to be a behavioral or perception-based variable. "
-            f"Treat it as an individual-, household-, or firm-level trait, "
-            f"and specify how it can be measured empirically."
-        )
-
-    if any(k in v for k in market_keywords):
-        return (
-            f"{var_name} appears to be a market or macroeconomic condition. "
-            f"Treat it as a measurable economic environment variable and clarify "
-            f"the relevant level of analysis."
+            f"{var_name} appears to be a {role_text}. "
+            f"Before generating research questions, define one precise and measurable interpretation of {var_name}. "
+            f"If multiple interpretations are possible, choose the most academically plausible one for insurance, "
+            f"risk management, business, or finance research, and use it consistently."
         )
 
     return (
         f"{var_name} may be broad or ambiguous. "
-        f"The model must first define a precise academic interpretation of this variable "
-        f"before generating research questions."
+        f"Before generating research questions, define one precise and measurable interpretation of {var_name}. "
+        f"Do not assume multiple meanings at once."
     )
 
 def build_rq_prompt(input_x, input_y, papers_in_node, max_papers=10):
+
+    def get_year(p):
+        try:
+            return int(p.get("metadata", {}).get("year") or 0)
+        except:
+            return 0
+
+    # 1. 최신순 정렬
+    papers_sorted = sorted(papers_in_node, key=get_year, reverse=True)
+
+    # 2. 최근 논문 우선 (2018 이후)
+    papers_recent = [p for p in papers_sorted if get_year(p) >= 2018]
+
+    if len(papers_recent) >= max_papers:
+        target_papers = papers_recent
+    else:
+        target_papers = papers_sorted
+
     context_lines = []
 
     for i, p in enumerate(papers_in_node[:max_papers], start=1):
@@ -642,10 +644,17 @@ X interpretation:
 Y interpretation:
 {y_interpretation}
 
-- If X or Y is broad, ambiguous, or not directly measurable, first define a precise research interpretation.
+- If X or Y is broad, ambiguous, or not directly measurable, first define ONE precise research interpretation.
 - Do NOT assume multiple meanings at once.
 - Use the most academically plausible interpretation based on insurance, risk management, business, or finance research.
 - Each research question must clearly explain how the interpreted X connects to the interpreted Y.
+- X and Y must be operationalized as measurable empirical variables.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[RECENCY PRIORITY]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Give more weight to recent literature (last 5–10 years) when identifying research gaps.
+- Avoid generating research questions that were already addressed in recent studies.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [Relevant Prior Studies — OPTIONAL METHODOLOGICAL RESOURCES]
@@ -775,6 +784,9 @@ st.info("""
 이 도구는 입력한 X와 Y를 기반으로 데이터셋 내 유사 연구를 참고하여
 생성형 AI에 입력할 수 있는 Research Question 생성용 프롬프트를 제공합니다.
 
+※ X와 Y를 모두 입력해야 합니다.
+※ X 또는 Y가 모호한 경우, 프롬프트 안에서 변수 해석을 먼저 명확히 하도록 설계되어 있습니다.
+        
 ※ 본 시스템은 생성형 AI를 직접 호출하지 않습니다.
 프롬프트를 복사하여 ChatGPT, Claude, Gemini 등에 붙여넣어 사용하세요.
 
@@ -791,14 +803,14 @@ st.info("""
 
 """)
 
-x = st.text_input("X", placeholder="(미입력 가능)")
-y = st.text_input("Y", placeholder="(미입력 가능)")
+x = st.text_input("X", placeholder="예: pandemic, regulation, risk disclosure")
+y = st.text_input("Y", placeholder="예: insurance demand, operational risk losses, firm performance")
 
-run = st.button("RQ Prompt 생성", disabled=not (x.strip() or y.strip()))
+run = st.button("RQ Prompt 생성", disabled=not (x.strip() and y.strip()))
 
 if run:
-    if not (x.strip() or y.strip()):
-        st.warning("X 또는 Y 중 하나 이상 입력해주세요.")
+    if not x.strip() or not y.strip():
+        st.warning("X와 Y를 모두 입력해주세요.")
         st.stop()
 
     if len(papers_in_node) == 0:
