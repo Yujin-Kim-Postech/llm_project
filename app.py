@@ -678,6 +678,18 @@ The following studies are relevant to X and Y.
 {context_text}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[IMPORTANT SOURCE VALIDATION WARNING]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The retrieved studies are provided as search-based contextual references.
+Do NOT assume that all titles, authors, years, or findings are perfectly accurate.
+Use them only as tentative signals of nearby literature.
+
+When using a prior study:
+- Do not invent findings beyond the listed X, Y, title, journal, and citation.
+- If the study’s relevance is uncertain, classify it as Priority 4 or mention uncertainty.
+- Research gaps should be framed conservatively unless the study is clearly relevant.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [PRIOR STUDIES USAGE HIERARCHY]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Use prior studies according to the following priority:
@@ -771,8 +783,14 @@ Before generating research questions, explicitly declare:
 
 - Rationale for interpretation: [1–2 sentences]
 
-All research questions MUST be consistent with this declaration.
-Do NOT change the interpretation across questions.
+All research questions MUST be conceptually consistent with this declaration.
+However, measurable proxies may be adapted across research questions
+when the unit of analysis changes, such as individual, household, firm, insurer, or market level.
+
+For each research question, specify:
+- unit of analysis
+- X proxy appropriate for that unit
+- Y proxy appropriate for that unit
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [RECENCY PRIORITY]
@@ -829,6 +847,18 @@ Each research question MUST satisfy at least TWO of the following:
 - Avoid vague associations such as “X affects Y” without a clear transmission channel.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[MECHANISM REQUIREMENT — MANDATORY]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+For each research question, explicitly describe the causal or theoretical mechanism in 2–3 sentences.
+
+The mechanism must include:
+1. How X changes perception, constraint, information processing, trust, liquidity preference, or expected utility.
+2. How that intermediate channel changes Y.
+3. Why this mechanism is not already fully resolved by prior literature.
+
+Avoid simply saying “X affects Y.”
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [AVOID — LOW CONTRIBUTION PATTERNS]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Avoid research questions that:
@@ -846,7 +876,11 @@ Generate 5 NOVEL research questions connecting X → Y.
 [Instructions]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. Generate EXACTLY 5 research questions.
-2. Each question must correspond to ONE of the following types:
+2. Each question must correspond to ONE of the following types.
+   You do NOT need to use all five types if doing so weakens the research logic.
+   However, avoid repeating the same type more than twice.
+
+   Available types:
    - Causal relationship
    - Moderating effect
    - Mediating mechanism
@@ -875,6 +909,15 @@ f. Method:
    - Use advanced methods ONLY when appropriate
    - Ensure methodological diversity across questions
 
+g. Method Justification:
+   - Why this method is appropriate for the research question
+   - What identification problem or modeling challenge it solves
+   - Why a simpler method may be insufficient
+
+For each suggested method, justify why the method is needed.
+Do NOT list advanced methods unless they directly solve an identification, heterogeneity, mediation, selection, or structural modeling problem.
+If a simple regression is sufficient, say so.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [Output Format]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -900,7 +943,10 @@ Data:
 Method:
 ...
 
-(Repeat for Moderating, Mediating, Comparison, Policy)
+Method Justification:
+...
+
+(Repeat until exactly 5 research questions are generated. Types may vary, but avoid excessive repetition.)
 """
     return prompt.strip()
 
@@ -1052,6 +1098,7 @@ if page == "Node Explorer":
                 "No": i,
                 "Author (Year)": row.get("citation", ""),
                 "Dependent Y": row.get("dependent_y", ""),
+                "Independent X": row.get("independent_x", ""),
                 "Journal": row.get("journal", ""),
                 "Title": row.get("title", ""),
                 "Summary": row.get("summary", ""),
@@ -1066,7 +1113,6 @@ if page == "Node Explorer":
 
 else:
     st.title("RQ Prompt Generator")
-    st.markdown("### Node-based RQ generation")
     st.info("""
     이 도구는 입력한 X와 Y를 기반으로 데이터셋 내 유사 연구를 참고하여  
     생성형 AI에 입력할 수 있는 Research Question 생성용 프롬프트를 제공합니다.
@@ -1080,22 +1126,39 @@ else:
 
     st.markdown("---")
 
+    st.markdown("### 📊 논문 Priority 요구조건")
+
+    st.markdown("""
+    **Priority 1**  
+    X와 Y 간의 직접적인 관계를 분석한 연구
+                
+    **Priority 2**  
+    종속변수(Y)의 수요, 결정요인, 결과 등에 초점을 둔 연구
+                
+    **Priority 3**  
+    독립변수(X)의 특성, 행동, 결정요인 등에 초점을 둔 연구
+                
+    **Priority 4**  
+    주제와 직접 관련은 없지만 방법론적으로 참고 가능한 연구
+    """)
+
+    st.markdown("---")
+
     st.markdown("### 📊 논문 Novelty 요구조건")
 
     st.markdown("""
     ① **방법론적 참신성 (Methodological Novelty)**  
-    기존 연구에서 일반적으로 사용되지 않았던 비표준적 방법론,  
-    고급 계량경제 기법, 또는 새로운 모델링 접근
+    기존 연구에서 일반적으로 사용되지 않았던 비표준적 방법론, 고급 계량경제 기법, 또는 새로운 모델링 접근
 
     ② **맥락적 참신성 (Contextual Novelty)**  
     특정 집단, 시장 환경, 또는 시기적·제도적 변화 맥락 분석
 
     ③ **변수 결합의 참신성 (Variable-Combination Novelty)**  
-    변수 간 새로운 결합, 상호작용 효과, 비선형 관계,  
-    또는 잠재적 메커니즘 탐색
+    변수 간 새로운 결합, 상호작용 효과, 비선형 관계, 또는 잠재적 메커니즘 탐색
     """)
 
     st.markdown("---")
+
     st.caption(f"Current node: {selected_path} — {len(papers_in_node)} papers available")
 
     x = st.text_input("X", placeholder="예: pandemic, regulation, risk disclosure")
