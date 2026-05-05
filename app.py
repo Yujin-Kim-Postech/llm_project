@@ -3,6 +3,9 @@ import json
 import textwrap
 from pathlib import Path
 from collections import Counter, defaultdict
+import ast
+import html
+import re
 
 import streamlit as st
 from graphviz import Digraph
@@ -257,6 +260,27 @@ def shorten(s: str | None, n: int = 220) -> str:
         return ""
     s = " ".join(str(s).split())
     return (s[: n - 1] + "…") if len(s) > n else s
+
+
+def clean_summary_text(s, max_items=3):
+    if not s:
+        return ""
+
+    # HTML 태그 제거
+    s = re.sub(r"<[^>]+>", "", str(s))
+    s = html.unescape(s).strip()
+
+    # 리스트 문자열 처리: ["a", "b"] → a / b
+    try:
+        parsed = ast.literal_eval(s)
+        if isinstance(parsed, list):
+            parsed = [str(x).strip() for x in parsed if str(x).strip()]
+            return " · ".join(parsed[:max_items])
+    except Exception:
+        pass
+
+    return " ".join(s.split())
+
 
 def paper_title(p: dict) -> str:
     m = p.get("metadata") or {}
@@ -1034,6 +1058,10 @@ if node is not None:
 
 if page == "Node Explorer":
     st.title("Insurance & Risk Management Literature Tree Explorer")
+    st.info(
+        "본 화면의 논문 요약, 변수 정보 및 카테고리 분류는 생성형 AI를 활용하여 추출·정리된 결과이며, "
+        "연구 활용 전 원문 확인이 필요합니다."
+    )
     dot = build_graphviz(tree, show_paper_ids=show_ids)
     st.graphviz_chart(dot, use_container_width=True)
 
@@ -1078,7 +1106,8 @@ if page == "Node Explorer":
             p = papers_idx.get(norm_pid(pid))
             title = paper_title(p) if p else ""
             summary = extract_summary_subject(p) if p else ""
-            summary = shorten(summary or "", n=300)
+            summary = clean_summary_text(summary, max_items=3)
+            summary = shorten(summary, n=280)
             citation = paper_citation_brief(p) if p else ""
             journal = paper_journal(p) if p else ""
             doi = norm_pid(pid)
@@ -1093,20 +1122,30 @@ if page == "Node Explorer":
             })
 
         st.markdown(f"#### **{chosen_y}** (n= {len(paper_list)})")
-        table_rows = []
-        for i, row in enumerate(paper_list, start=1):
-            table_rows.append({
-                "No": i,
-                "Author (Year)": row.get("citation", ""),
-                "Dependent Y": row.get("dependent_y", ""),
-                "Independent X": row.get("independent_x", ""),
-                "Journal": row.get("journal", ""),
-                "Title": row.get("title", ""),
-                "Summary": row.get("summary", ""),
-                "DOI": f"https://doi.org/{row.get('doi','')}" if row.get("doi") else ""
-            })
 
-        st.dataframe(table_rows, use_container_width=True, hide_index=True)
+        for i, row in enumerate(paper_list, start=1):
+            st.markdown(f"""
+    <div style="
+        border:1px solid #e5e7eb;
+        border-radius:12px;
+        padding:16px;
+        margin-bottom:12px;
+        background-color:#ffffff;
+    ">
+        <div style="font-size:16px; font-weight:700;">
+            {i}. {row.get("title", "")}
+        </div>
+        <div style="font-size:13px; color:#6b7280; margin-top:4px;">
+            {row.get("citation", "")} · {row.get("journal", "")}
+        </div>
+        <div style="font-size:14px; margin-top:10px; line-height:1.6;">
+            {clean_summary_text(row.get("summary", ""))}
+        </div>
+        <div style="font-size:12px; margin-top:8px;">
+            <a href="https://doi.org/{row.get("doi", "")}" target="_blank">DOI 바로가기</a>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
         if missing:
             st.warning(f"{len(missing)} paper_ids were in tree.json but not found in {PAPERS_PATH}. (showing first 10)")
@@ -1120,6 +1159,7 @@ else:
 
     ※ X와 Y를 모두 입력해야 합니다.  
     ※ X 또는 Y가 모호한 경우, 프롬프트 내에서 변수 해석을 먼저 명확히 하도록 설계되어 있습니다.  
+    ※ Node Level 1과 Level 2를 모두 선택하지 않은 경우 많은 시간이 소요될 수 있습니다.
 
     ※ 본 시스템은 생성형 AI를 직접 호출하지 않습니다.  
     프롬프트를 복사하여 ChatGPT, Claude, Gemini 등에 붙여넣어 사용하세요.
@@ -1127,7 +1167,7 @@ else:
 
     st.markdown("---")
 
-    st.markdown("### 📊 논문 Priority 요구조건")
+    st.markdown("### 📊 선행논문 Priority 요구조건")
 
     st.markdown("""
     **Priority 1**  
@@ -1145,7 +1185,7 @@ else:
 
     st.markdown("---")
 
-    st.markdown("### 📊 논문 Novelty 요구조건")
+    st.markdown("### 📊 Research Question Novelty 요구조건")
 
     st.markdown("""
     ① **방법론적 참신성 (Methodological Novelty)**  
