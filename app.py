@@ -262,24 +262,28 @@ def shorten(s: str | None, n: int = 220) -> str:
     return (s[: n - 1] + "…") if len(s) > n else s
 
 
-def clean_summary_text(s, max_items=3):
+def clean_summary_text(s, max_items=2, max_chars=260):
     if not s:
         return ""
 
-    # HTML 태그 제거
-    s = re.sub(r"<[^>]+>", "", str(s))
-    s = html.unescape(s).strip()
+    s = html.unescape(str(s))
+    s = re.sub(r"<[^>]+>", "", s)
+    s = s.strip()
 
-    # 리스트 문자열 처리: ["a", "b"] → a / b
     try:
         parsed = ast.literal_eval(s)
         if isinstance(parsed, list):
             parsed = [str(x).strip() for x in parsed if str(x).strip()]
-            return " · ".join(parsed[:max_items])
+            s = " / ".join(parsed[:max_items])
     except Exception:
         pass
 
-    return " ".join(s.split())
+    s = " ".join(s.split())
+
+    if len(s) > max_chars:
+        s = s[:max_chars].rstrip() + "…"
+
+    return s
 
 
 def paper_title(p: dict) -> str:
@@ -1106,8 +1110,7 @@ if page == "Node Explorer":
             p = papers_idx.get(norm_pid(pid))
             title = paper_title(p) if p else ""
             summary = extract_summary_subject(p) if p else ""
-            summary = clean_summary_text(summary, max_items=3)
-            summary = shorten(summary, n=280)
+            summary = clean_summary_text(summary, max_items=2, max_chars=260)
             citation = paper_citation_brief(p) if p else ""
             journal = paper_journal(p) if p else ""
             doi = norm_pid(pid)
@@ -1122,30 +1125,24 @@ if page == "Node Explorer":
             })
 
         st.markdown(f"#### **{chosen_y}** (n= {len(paper_list)})")
-
+        table_rows = []
         for i, row in enumerate(paper_list, start=1):
-            st.markdown(f"""
-    <div style="
-        border:1px solid #e5e7eb;
-        border-radius:12px;
-        padding:16px;
-        margin-bottom:12px;
-        background-color:#ffffff;
-    ">
-        <div style="font-size:16px; font-weight:700;">
-            {i}. {row.get("title", "")}
-        </div>
-        <div style="font-size:13px; color:#6b7280; margin-top:4px;">
-            {row.get("citation", "")} · {row.get("journal", "")}
-        </div>
-        <div style="font-size:14px; margin-top:10px; line-height:1.6;">
-            {clean_summary_text(row.get("summary", ""))}
-        </div>
-        <div style="font-size:12px; margin-top:8px;">
-            <a href="https://doi.org/{row.get("doi", "")}" target="_blank">DOI 바로가기</a>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+            table_rows.append({
+                "No": i,
+                "Title": row.get("title", ""),
+                "Author (Year)": row.get("citation", ""),
+                "Journal": row.get("journal", ""),
+                "Dependent Y": row.get("dependent_y", ""),
+                "Summary": row.get("summary", ""),
+                "DOI": f"https://doi.org/{row.get('doi','')}" if row.get("doi") else ""
+            })
+
+        st.dataframe(
+            table_rows,
+            use_container_width=True,
+            hide_index=True,
+            height=650
+        )
 
         if missing:
             st.warning(f"{len(missing)} paper_ids were in tree.json but not found in {PAPERS_PATH}. (showing first 10)")
