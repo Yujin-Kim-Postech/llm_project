@@ -7,6 +7,9 @@ from collections import Counter, defaultdict
 import streamlit as st
 from graphviz import Digraph
 import pandas as pd
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 
 # -----------------------------
@@ -520,25 +523,103 @@ else:
         st.warning(f"{len(missing)} paper_ids were in tree.json but not found in {PAPERS_PATH}. (showing first 10)")
         st.code("\n".join(missing[:10]))
 
-def relevance_score(p, input_x, input_y):
+def expand_terms(text):
+    text = (text or "").lower()
+
+    mapping = {
+        "annual reports": [
+            "annual report", "financial report", "disclosure",
+            "risk disclosure", "corporate disclosure",
+            "10-k", "reporting", "financial statement"
+        ],
+        "insurance demand": [
+            "insurance demand", "insurance purchase",
+            "insurance adoption", "take-up", "uptake",
+            "insurance decision", "policy purchase"
+        ],
+    }
+
+    terms = set(text.split())
+
+    for k, v in mapping.items():
+        if k in text:
+            terms.update(v)
+
+    return list(terms)
+
+def relevance_score(p, x_terms, y_terms):
     text = " ".join([
         str(p.get("metadata", {}).get("title", "")),
         str(p.get("empirical_analysis", {}).get("Independent_Variable_X", "")),
         str(p.get("empirical_analysis", {}).get("Dependent_Variable_Y", "")),
         str(p.get("empirical_analysis", {}).get("keywords", "")),
-        str(p.get("empirical_analysis", {}).get("results", ""))
+        str(p.get("empirical_analysis", {}).get("results", "")),
     ]).lower()
 
-    x_terms = set(input_x.lower().split())
-    y_terms = set(input_y.lower().split())
+    x_match = sum(1 for t in x_terms if t in text)
+    y_match = sum(1 for t in y_terms if t in text)
 
-    match_XY = all(term in text for term in x_terms) and all(term in text for term in y_terms)
-    match_Y = not any(term in text for term in x_terms) and all(term in text for term in y_terms)
-    match_X = all(term in text for term in x_terms) and not any(term in text for term in y_terms)
+    return x_match, y_match
 
-    score = 3 * int(match_XY) + 2 * int(match_Y) + 1 * int(match_X)
+def classify_papers(papers, input_x, input_y):
+    x_terms = expand_terms(input_x)
+    y_terms = expand_terms(input_y)
 
-    return score
+    xy, y_only, x_only, method = [], [], [], []
+
+    for p in papers:
+        x_m, y_m = relevance_score(p, x_terms, y_terms)
+
+        if x_m > 0 and y_m > 0:
+            xy.append(p)
+        elif y_m > 0:
+            y_only.append(p)
+        elif x_m > 0:
+            x_only.append(p)
+        else:
+            method.append(p)
+
+    return xy, y_only, x_only, method
+
+def sort_recent(papers):
+    def get_year(p):
+        try:
+            return int(float(p.get("metadata", {}).get("year") or 0))
+        except:
+            return 0
+    return sorted(papers, key=get_year, reverse=True)
+
+def select_papers(papers, input_x, input_y, max_papers=10):
+    xy, y_only, x_only, method = classify_papers(papers, input_x, input_y)
+
+    xy = sort_recent(xy)
+    y_only = sort_recent(y_only)
+    x_only = sort_recent(x_only)
+    method = sort_recent(method)
+
+    selected = []
+
+    # quota
+    q_xy = 3
+    q_y = 4
+    q_x = 2
+    q_m = 1
+
+    selected += xy[:q_xy]
+    selected += y_only[:q_y]
+    selected += x_only[:q_x]
+    selected += method[:q_m]
+
+    # 부족하면 전체에서 채움
+    if len(selected) < max_papers:
+        remaining = sort_recent(papers)
+        for p in remaining:
+            if p not in selected:
+                selected.append(p)
+            if len(selected) >= max_papers:
+                break
+
+    return selected[:max_papers]
 
 def infer_variable_role(var_text: str, var_name: str = "X") -> str:
     v = (var_text or "").strip().lower()
@@ -601,21 +682,103 @@ def infer_variable_role(var_text: str, var_name: str = "X") -> str:
         f"Do not assume multiple meanings at once."
     )
 
+@st.cache_resource
+def load_embedding_model():
+    return SentenceTransformer("all-MiniLM-L6-v2")
+
+def paper_search_text(p: dict) -> str:
+    ea = p.get("empirical_analysis", {}) or {}
+    meta = p.get("metadata", {}) or {}
+
+    return " ".join([
+        str(meta.get("title", "")),
+        str(meta.get("journal", "")),
+        str(meta.get("study_type", "")),
+        str(meta.get("Topic_L1", "")),
+        str(meta.get("Topic_L2", "")),
+        str(ea.get("Independent_Variable_X", "")),
+        str(ea.get("Proxy_for_X", "")),
+        str(ea.get("Dependent_Variable_Y", "")),
+        str(ea.get("Proxy_for_Y", "")),
+        str(ea.get("methodology", "")),
+        str(ea.get("dataset_and_period", "")),
+        str(ea.get("results", "")),
+        str(ea.get("keywords", "")),
+    ]).lower()
+
+def get_year_safe(p: dict) -> int:
+    try:
+        return int(float(p.get("metadata", {}).get("year") or 0))
+    except:
+        return 0
+
+def select_papers_by_embedding(
+    papers: list[dict],
+    input_x: str,
+    input_y: str,
+    max_papers: int = 10,
+    recency_weight: float = 0.05,
+):
+    """
+    Semantic similarity + recency 기반 prior studies 선택
+    """
+
+    if not papers:
+        return []
+
+    model = load_embedding_model()
+
+    query = f"""
+    Independent variable: {input_x}
+    Dependent variable: {input_y}
+    Research field: insurance, risk management, quantitative finance, business research
+    """
+
+    paper_texts = [paper_search_text(p) for p in papers]
+
+    query_emb = model.encode([query], normalize_embeddings=True)
+    paper_embs = model.encode(paper_texts, normalize_embeddings=True)
+
+    sims = cosine_similarity(query_emb, paper_embs)[0]
+
+    years = np.array([get_year_safe(p) for p in papers])
+    if years.max() > years.min():
+        year_scores = (years - years.min()) / (years.max() - years.min())
+    else:
+        year_scores = np.zeros_like(years, dtype=float)
+
+    final_scores = sims + recency_weight * year_scores
+
+    ranked_idx = np.argsort(final_scores)[::-1]
+
+    selected = [papers[i] for i in ranked_idx[:max_papers]]
+    return selected
+
 def build_rq_prompt(input_x, input_y, papers_in_node, max_papers=10):
-    # ✅ Step 2 — 필터링 + fallback
-    scored_papers = [(p, relevance_score(p, input_x, input_y)) for p in papers_in_node]
-    scored_papers.sort(key=lambda x: x[1], reverse=True)
-    target_papers = [p for p, s in scored_papers[:max_papers] if s > 0]
+    target_papers = select_papers_by_embedding(
+        papers=papers_in_node,
+        input_x=input_x,
+        input_y=input_y,
+        max_papers=max_papers,
+    )
     use_context = len(target_papers) >= 5
 
     # ✅ Step 3 — context_text 조건부 생성
     context_lines = []
 
     for i, p in enumerate(target_papers[:max_papers], start=1):
+        title = paper_title(p)
+        citation = paper_citation_brief(p)
+        journal = paper_journal(p)
+        x = p.get("empirical_analysis", {}).get("Independent_Variable_X", "")
+        y = p.get("empirical_analysis", {}).get("Dependent_Variable_Y", "")
+
         context_lines.append(
-            f"{i}. Title: {paper_title(p)}\n"
-            f"   Citation: {paper_citation_brief(p)}\n"
-            f"   Journal: {paper_journal(p)}\n"
+            f"{i}. Title: {title}\n"
+            f"   Citation: {citation}\n"
+            f"   Journal: {journal}\n"
+            f"   X: {x}\n"
+            f"   Y: {y}"
         )
 
     context_text = "\n".join(context_lines)
@@ -624,7 +787,7 @@ def build_rq_prompt(input_x, input_y, papers_in_node, max_papers=10):
     if use_context:
         knowledge_block = f"""
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[RELEVANT PRIOR STUDIES]
+[RETRIEVED PRIOR STUDIES]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 The following studies are relevant to X and Y.
 
@@ -653,10 +816,6 @@ If no Priority 1 studies exist:
 
 Do NOT treat all prior studies as equally relevant.
 Do NOT force connections between studies and X–Y.
-
-- Use them to identify research gaps and positioning.
-- Do NOT simply replicate them.
-- Extend or challenge their assumptions.
 """
     else:
         knowledge_block = """
