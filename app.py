@@ -520,6 +520,83 @@ else:
         st.warning(f"{len(missing)} paper_ids were in tree.json but not found in {PAPERS_PATH}. (showing first 10)")
         st.code("\n".join(missing[:10]))
 
+def infer_variable_role(var_text: str, var_name: str = "X") -> str:
+    """
+    입력된 X/Y가 어떤 성격의 변수인지 대략 분류하여
+    프롬프트 안에서 명확한 해석을 유도하기 위한 설명을 생성.
+    """
+    v = (var_text or "").strip().lower()
+
+    if not v:
+        return f"{var_name} is not provided."
+
+    document_keywords = [
+        "report", "reports", "filing", "filings", "disclosure", "statement",
+        "annual report", "interim report", "10-k", "10-q", "sfcr", "rsr"
+    ]
+
+    shock_keywords = [
+        "pandemic", "covid", "crisis", "financial crisis", "war",
+        "disaster", "earthquake", "flood", "shock"
+    ]
+
+    policy_keywords = [
+        "regulation", "policy", "law", "reform", "mandate",
+        "supervision", "capital requirement", "solvency"
+    ]
+
+    behavioral_keywords = [
+        "risk aversion", "risk perception", "trust", "literacy",
+        "awareness", "preference", "behavior"
+    ]
+
+    market_keywords = [
+        "competition", "premium", "price", "interest rate",
+        "inflation", "unemployment", "market condition"
+    ]
+
+    if any(k in v for k in document_keywords):
+        return (
+            f"{var_name} appears to be a disclosure/document-based variable. "
+            f"Treat it as an information source or textual disclosure mechanism, "
+            f"not as a vague document label. The model should specify whether it uses "
+            f"content, tone, risk disclosure, frequency, quality, or timing of the document."
+        )
+
+    if any(k in v for k in shock_keywords):
+        return (
+            f"{var_name} appears to be an external shock or event. "
+            f"Treat it as a time-varying or region-varying exposure, and clarify "
+            f"whether it is measured by severity, timing, duration, or intensity."
+        )
+
+    if any(k in v for k in policy_keywords):
+        return (
+            f"{var_name} appears to be a policy or regulatory variable. "
+            f"Treat it as an institutional change, rule intensity, or compliance burden, "
+            f"and clarify the timing and affected population."
+        )
+
+    if any(k in v for k in behavioral_keywords):
+        return (
+            f"{var_name} appears to be a behavioral or perception-based variable. "
+            f"Treat it as an individual-, household-, or firm-level trait, "
+            f"and specify how it can be measured empirically."
+        )
+
+    if any(k in v for k in market_keywords):
+        return (
+            f"{var_name} appears to be a market or macroeconomic condition. "
+            f"Treat it as a measurable economic environment variable and clarify "
+            f"the relevant level of analysis."
+        )
+
+    return (
+        f"{var_name} may be broad or ambiguous. "
+        f"The model must first define a precise academic interpretation of this variable "
+        f"before generating research questions."
+    )
+
 def build_rq_prompt(input_x, input_y, papers_in_node, max_papers=10):
     context_lines = []
 
@@ -540,6 +617,9 @@ def build_rq_prompt(input_x, input_y, papers_in_node, max_papers=10):
 
     context_text = "\n".join(context_lines)
 
+    x_interpretation = infer_variable_role(input_x, "X")
+    y_interpretation = infer_variable_role(input_y, "Y")
+
     prompt = f"""
 You are an expert academic research advisor in insurance, risk management, 
 and quantitative finance.
@@ -552,6 +632,20 @@ extensively studied in existing literature.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 X (Independent Variable): {input_x if input_x else "(not provided)"}
 Y (Dependent Variable): {input_y if input_y else "(not provided)"}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Variable Interpretation — CRITICAL]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+X interpretation:
+{x_interpretation}
+
+Y interpretation:
+{y_interpretation}
+
+- If X or Y is broad, ambiguous, or not directly measurable, first define a precise research interpretation.
+- Do NOT assume multiple meanings at once.
+- Use the most academically plausible interpretation based on insurance, risk management, business, or finance research.
+- Each research question must clearly explain how the interpreted X connects to the interpreted Y.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [Relevant Prior Studies — OPTIONAL METHODOLOGICAL RESOURCES]
@@ -587,6 +681,14 @@ Each research question MUST satisfy at least TWO of the following:
   (e.g., causal inference, behavioral modeling, market frictions, network effects, 
   structural modeling, policy evaluation).
 - Do NOT generate multiple questions using the same core mechanism.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[X–Y LINKAGE REQUIREMENT — CRITICAL]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Each research question MUST explicitly explain the mechanism linking X to Y.
+- Specify whether X is treated as a shock, disclosure, policy, market condition, behavioral factor, or measurable firm-level variable.
+- Specify how Y can be operationalized as an empirical dependent variable.
+- Avoid vague associations such as “X affects Y” without a clear transmission channel.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [AVOID — LOW CONTRIBUTION PATTERNS]
@@ -676,8 +778,7 @@ st.info("""
 ※ 본 시스템은 생성형 AI를 직접 호출하지 않습니다.
 프롬프트를 복사하여 ChatGPT, Claude, Gemini 등에 붙여넣어 사용하세요.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[논문 Novelty 요구조건]
+━━━━━━━━━━━━━━━━━━━━[논문 Novelty 요구조건]━━━━━━━━━━━━━━━━━━━━
 
 ① 방법론적 참신성 (Methodological Novelty)
 기존 연구에서 일반적으로 사용되지 않았던 비표준적 방법론, 고급 계량경제 기법, 또는 새로운 모델링 접근
