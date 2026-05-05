@@ -559,11 +559,11 @@ Y (Dependent Variable): {input_y if input_y else "(not provided)"}
 {context_text}
 
 IMPORTANT:
-- The prior studies may contain advanced methodologies.
-- If relevant, you are encouraged (but NOT required) to incorporate their 
-  methodological insights (e.g., tail risk modeling, dependence structures, 
-  structural break detection).
-- Only use these methods when they naturally fit the research question.
+- The prior studies are ONLY a partial and potentially biased sample.
+- You MUST NOT over-rely on a single methodology, theory, or perspective.
+- Use them as OPTIONAL inspiration, not as the primary direction.
+- If one methodology dominates (e.g., EVT, tail risk), actively diversify beyond it.
+- You are encouraged to incorporate advanced methods ONLY when they naturally fit.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [NOVELTY REQUIREMENTS — MANDATORY]
@@ -579,10 +579,23 @@ Each research question MUST satisfy at least TWO of the following:
 ③ Variable-combination novelty  
    (new mechanisms, nonlinearities, or overlooked interactions)
 
-AVOID:
-- Simple DID-style causal questions
-- Overused mediation (e.g., basic risk perception)
-- Generic cross-country comparisons
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[DIVERSITY REQUIREMENT — CRITICAL]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- The 5 research questions MUST be methodologically diverse.
+- At least 3 questions must use DIFFERENT methodological perspectives 
+  (e.g., causal inference, behavioral modeling, market frictions, network effects, 
+  structural modeling, policy evaluation).
+- Do NOT generate multiple questions using the same core mechanism.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[AVOID — LOW CONTRIBUTION PATTERNS]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Avoid research questions that:
+- Only estimate average treatment effects without uncovering mechanisms
+- Rely on widely used and saturated frameworks without extension
+- Provide descriptive comparisons without causal or structural interpretation
+- Do not introduce new variation, interaction, or nonlinearity
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [Task]
@@ -609,17 +622,18 @@ b. Novelty Check:
    - Why novel:
 
 c. Research Gap:
-   - What prior literature has NOT addressed
+   - Clearly state what prior literature has NOT addressed
 
 d. Rationale:
-   - Why it is meaningful
+   - Why it is academically meaningful
 
 e. Data:
-   - Required dataset
+   - Specify required dataset (type, unit, key variables)
 
 f. Method:
    - Suggested empirical strategy
    - Use advanced methods ONLY when appropriate
+   - Ensure methodological diversity across questions
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [Output Format]
@@ -661,6 +675,19 @@ st.info("""
 
 ※ 본 시스템은 생성형 AI를 직접 호출하지 않습니다.
 프롬프트를 복사하여 ChatGPT, Claude, Gemini 등에 붙여넣어 사용하세요.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[논문 Novelty 요구조건]
+
+① 방법론적 참신성 (Methodological Novelty)
+기존 연구에서 일반적으로 사용되지 않았던 비표준적 방법론, 고급 계량경제 기법, 또는 새로운 모델링 접근
+
+② 맥락적 참신성 (Contextual Novelty)
+특정 집단, 시장 환경, 또는 시기적·제도적 변화 맥락 분석
+
+③ 변수 결합의 참신성 (Variable-Combination Novelty)
+변수 간의 새로운 결합, 상호작용 효과, 비선형 관계, 또는 잠재적 메커니즘 탐색
+
 """)
 
 x = st.text_input("X", placeholder="(미입력 가능)")
