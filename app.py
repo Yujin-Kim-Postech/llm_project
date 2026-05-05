@@ -529,10 +529,14 @@ def relevance_score(p, input_x, input_y):
         str(p.get("empirical_analysis", {}).get("results", ""))
     ]).lower()
 
-    score = 0
-    for term in (input_x + " " + input_y).lower().split():
-        if term in text:
-            score += 1
+    x_terms = set(input_x.lower().split())
+    y_terms = set(input_y.lower().split())
+
+    match_XY = all(term in text for term in x_terms) and all(term in text for term in y_terms)
+    match_Y = not any(term in text for term in x_terms) and all(term in text for term in y_terms)
+    match_X = all(term in text for term in x_terms) and not any(term in text for term in y_terms)
+
+    score = 3 * int(match_XY) + 2 * int(match_Y) + 1 * int(match_X)
 
     return score
 
@@ -599,16 +603,10 @@ def infer_variable_role(var_text: str, var_name: str = "X") -> str:
 
 def build_rq_prompt(input_x, input_y, papers_in_node, max_papers=10):
     # ✅ Step 2 — 필터링 + fallback
-    papers_relevant = [
-        p for p in papers_in_node
-        if relevance_score(p, input_x, input_y) >= 2
-    ]
-    if len(papers_relevant) >= 5:
-        target_papers = papers_relevant
-        use_context = True
-    else:
-        target_papers = []
-        use_context = False
+    scored_papers = [(p, relevance_score(p, input_x, input_y)) for p in papers_in_node]
+    scored_papers.sort(key=lambda x: x[1], reverse=True)
+    target_papers = [p for p, s in scored_papers[:max_papers] if s > 0]
+    use_context = len(target_papers) >= 5
 
     # ✅ Step 3 — context_text 조건부 생성
     context_lines = []
@@ -632,6 +630,30 @@ The following studies are relevant to X and Y.
 
 {context_text}
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[PRIOR STUDIES USAGE HIERARCHY]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Use prior studies according to the following priority:
+
+Priority 1 — Studies directly linking X and Y:
+  → Use to identify the main research gap and positioning.
+
+Priority 2 — Studies related to Y only:
+  → Use to understand demand-side mechanisms and behavioral context.
+
+Priority 3 — Studies related to X only:
+  → Use to understand disclosure/document effects and information channels.
+
+Priority 4 — Methodologically relevant studies only:
+  → Extract method logic only. Do NOT force topical connections.
+
+If no Priority 1 studies exist:
+  → Explicitly acknowledge this in your interpretation.
+  → Use your own knowledge for content-level gaps.
+
+Do NOT treat all prior studies as equally relevant.
+Do NOT force connections between studies and X–Y.
+
 - Use them to identify research gaps and positioning.
 - Do NOT simply replicate them.
 - Extend or challenge their assumptions.
@@ -650,11 +672,9 @@ The following studies are relevant to X and Y.
     y_interpretation = infer_variable_role(input_y, "Y")
 
     prompt = f"""
-You are an expert academic research advisor in insurance, risk management, 
-and quantitative finance.
+You are an expert academic research advisor in insurance, risk management, and quantitative finance.
 
-Your task is to generate NOVEL research questions that have NOT yet been 
-extensively studied in existing literature.
+Your task is to generate NOVEL research questions that have NOT yet been extensively studied in existing literature.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [Student Input]
