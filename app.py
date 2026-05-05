@@ -7,8 +7,8 @@ from collections import Counter, defaultdict
 import streamlit as st
 from graphviz import Digraph
 import pandas as pd
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
+# from sentence_transformers import SentenceTransformer
+# from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
 
@@ -344,185 +344,6 @@ def paper_citation_brief(p: dict) -> str:
     else:
         return ""
 
-# -----------------------------
-# UI
-# -----------------------------
-st.set_page_config(layout="wide")
-st.title("Insurance & Risk Management Literature Tree (Graph)")
-
-# Paths
-TREE_PATH = "tree.json"
-PAPERS_PATH = "data/RQ_generator_dataset.xlsx"  # 필요 시 변경
-
-
-
-show_ids = st.checkbox("Show paper_ids in leaf nodes", value=False)
-
-tree = load_tree(TREE_PATH)
-dot = build_graphviz(tree, show_paper_ids=show_ids)
-
-st.graphviz_chart(dot, use_container_width=True)
-
-st.sidebar.header("Node selection")
-
-root_name = tree.get("name", "ROOT")
-level1_nodes = tree.get("children", []) or []
-
-# label -> node 매핑
-def node_label(n: dict) -> str:
-    name = str(n.get("name", "")).strip()
-    value = n.get("value", None)
-    return f"{name} (n={value})" if value is not None else name
-
-level1_label_to_node = {node_label(n): n for n in level1_nodes}
-
-chosen_l1_label = st.sidebar.selectbox(
-    "Level 1",
-    ["(All categories)"] + list(level1_label_to_node.keys()),
-    index=0
-)
-
-if chosen_l1_label == "(All categories)":
-    selected_path = root_name
-
-else:
-    l1_node = level1_label_to_node[chosen_l1_label]
-    l1_name = str(l1_node.get("name", "")).strip()
-
-    raw_level2_nodes = l1_node.get("children", []) or []
-
-    # case 1: 바로 아래가 A1/A2 같은 세부항목인 경우
-    # case 2: 바로 아래가 'A' 하나이고, 그 아래에 A1/A2가 있는 경우
-    if len(raw_level2_nodes) == 1:
-        only_child = raw_level2_nodes[0]
-        only_child_name = str(only_child.get("name", "")).strip()
-        grand_children = only_child.get("children", []) or []
-
-        # 중간 노드가 A/B/C 같은 코드성 노드이면 한 단계 더 내려감
-        if grand_children and len(only_child_name) <= 3:
-            level2_nodes = grand_children
-            level2_parent_path = f"{root_name} / {l1_name} / {only_child_name}"
-        else:
-            level2_nodes = raw_level2_nodes
-            level2_parent_path = f"{root_name} / {l1_name}"
-    else:
-        level2_nodes = raw_level2_nodes
-        level2_parent_path = f"{root_name} / {l1_name}"
-
-    level2_label_to_node = {node_label(n): n for n in level2_nodes}
-
-    chosen_l2_label = st.sidebar.selectbox(
-        "Level 2",
-        ["(All under selected Level 1)"] + list(level2_label_to_node.keys()),
-        index=0
-    )
-
-    if chosen_l2_label == "(All under selected Level 1)":
-        selected_path = level2_parent_path
-    else:
-        l2_node = level2_label_to_node[chosen_l2_label]
-        l2_name = str(l2_node.get("name", "")).strip()
-        selected_path = f"{level2_parent_path} / {l2_name}"
-
-papers_idx = load_papers_index(PAPERS_PATH)
-paper_ids = []
-papers_in_node = []
-
-node = find_node_by_path(tree, selected_path)
-if node is None:
-    st.error("Selected node not found in tree.")
-else:
-    paper_ids = collect_paper_ids_under(node)
-    papers_in_node = []
-    for pid in paper_ids:
-        p = papers_idx.get(norm_pid(pid))
-        if p:
-            papers_in_node.append(p)
-
-    st.subheader(f"Selection: {selected_path}")
-    st.caption(f"Papers under this category: {len(paper_ids)}")
-
-    # Y Category 집계
-    y_to_papers = defaultdict(list)
-    missing = []
-
-    for pid in paper_ids:
-        p = papers_idx.get(norm_pid(pid))
-        if not p:
-            missing.append(pid)
-            continue
-
-        y_cat = extract_y_category(p)
-        y_to_papers[y_cat].append(pid)
-
-    # Topline: Y 리스트 + 개수
-    # Topline: Y 리스트 + 개수
-    rows = []
-    for y, ids in sorted(y_to_papers.items(), key=lambda kv: (kv[0].lower(), -len(kv[1]))):
-        rows.append({"Y_Category": y, "n_papers": len(ids)})
-
-    st.markdown("### Y categories under this node")
-    st.dataframe(rows, use_container_width=True, hide_index=True)
-
-    # ✅ rows가 비면 여기서 종료 (selectbox 옵션 비어서 터지는 것 방지)
-    if len(rows) == 0:
-        st.info("이 노드 아래에서 집계할 논문이 없어요 (paper_ids가 없거나 papers.jsonl 매칭 실패).")
-        if missing:
-            st.caption(f"tree에는 있는데 {PAPERS_PATH}에 없는 paper_id (처음 20개):")
-            st.code("\n".join(missing[:20]))
-        st.stop()
-
-    # 상세: 선택한 Y의 논문 목록
-    st.markdown("### Papers by Selected Y Category")
-    y_options = [r["Y_Category"] for r in rows]
-    chosen_y = st.selectbox("Choose a Y Category", y_options)
-
-    chosen_ids = y_to_papers.get(chosen_y, [])
-    paper_list = []
-    for pid in chosen_ids:
-        p = papers_idx.get(norm_pid(pid))
-        title = paper_title(p) if p else ""
-        summary = extract_summary_subject(p) if p else ""
-        summary = shorten(summary or "", n=300)
-        citation = paper_citation_brief(p) if p else ""
-        journal = paper_journal(p) if p else ""
-        doi = norm_pid(pid)
-
-        paper_list.append({
-            "citation": citation,
-            "title": title,
-            "summary": summary,
-            "journal": journal,
-            "doi": doi,
-            "dependent_y": p.get("empirical_analysis", {}).get("Dependent_Variable_Y", "") if p else "",
-        })
-
-    # --- 고정 테이블 출력 ---
-    st.markdown(f"#### **{chosen_y}** (n= {len(paper_list)})")
-
-    table_rows = []
-    for i, row in enumerate(paper_list, start=1):
-        table_rows.append({
-            "No": i,
-            "Author (Year)": row.get("citation", ""),
-            "Dependent Y": row.get("dependent_y", ""),
-            "Journal": row.get("journal", ""),
-            "Title": row.get("title", ""),
-            "Summary": row.get("summary", ""),
-            "DOI": f"https://doi.org/{row.get('doi','')}" if row.get("doi") else ""
-        })
-
-    st.dataframe(
-        table_rows,
-        use_container_width=True,
-        hide_index=True
-    )   
-
-
-    if missing:
-        st.warning(f"{len(missing)} paper_ids were in tree.json but not found in {PAPERS_PATH}. (showing first 10)")
-        st.code("\n".join(missing[:10]))
-
 def expand_terms(text):
     text = (text or "").lower()
 
@@ -684,6 +505,14 @@ def infer_variable_role(var_text: str, var_name: str = "X") -> str:
 
 @st.cache_resource
 def load_embedding_model():
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError as exc:
+        raise ImportError(
+            "sentence_transformers is required for embedding-based retrieval. "
+            "Install sentence-transformers and retry, or use the keyword-based selection fallback."
+        ) from exc
+
     return SentenceTransformer("all-MiniLM-L6-v2")
 
 def paper_search_text(p: dict) -> str:
@@ -726,7 +555,10 @@ def select_papers_by_embedding(
     if not papers:
         return []
 
-    model = load_embedding_model()
+    try:
+        model = load_embedding_model()
+    except Exception:
+        return select_papers(papers, input_x, input_y, max_papers=max_papers)
 
     query = f"""
     Independent variable: {input_x}
@@ -739,18 +571,70 @@ def select_papers_by_embedding(
     query_emb = model.encode([query], normalize_embeddings=True)
     paper_embs = model.encode(paper_texts, normalize_embeddings=True)
 
-    sims = cosine_similarity(query_emb, paper_embs)[0]
+    semantic_sims = (paper_embs @ query_emb[0]).astype(float)
 
-    years = np.array([get_year_safe(p) for p in papers])
-    if years.max() > years.min():
-        year_scores = (years - years.min()) / (years.max() - years.min())
+    years = np.array([get_year_safe(p) for p in papers], dtype=float)
+    if len(years) > 0 and years.max() > years.min():
+        recency_scores = (years - years.min()) / (years.max() - years.min())
     else:
-        year_scores = np.zeros_like(years, dtype=float)
+        recency_scores = np.zeros(len(papers), dtype=float)
 
-    final_scores = sims + recency_weight * year_scores
+    x_terms = expand_terms(input_x)
+    y_terms = expand_terms(input_y)
 
-    ranked_idx = np.argsort(final_scores)[::-1]
+    scores = []
 
+    query_text = f"{input_x or ''} {input_y or ''}".lower()
+    for idx, p in enumerate(papers):
+        text = " ".join([
+            str(p.get("metadata", {}).get("title", "")),
+            str(p.get("empirical_analysis", {}).get("Independent_Variable_X", "")),
+            str(p.get("empirical_analysis", {}).get("Dependent_Variable_Y", "")),
+            str(p.get("empirical_analysis", {}).get("keywords", "")),
+            str(p.get("empirical_analysis", {}).get("results", "")),
+        ]).lower()
+
+        x_match = sum(1 for t in x_terms if t in text)
+        y_match = sum(1 for t in y_terms if t in text)
+
+        title = str(p.get("metadata", {}).get("title", "")).lower()
+        x_field = " ".join([
+            str(p.get("empirical_analysis", {}).get("Independent_Variable_X", "")),
+            str(p.get("empirical_analysis", {}).get("Proxy_for_X", ""))
+        ]).lower()
+        y_field = " ".join([
+            str(p.get("empirical_analysis", {}).get("Dependent_Variable_Y", "")),
+            str(p.get("empirical_analysis", {}).get("Proxy_for_Y", ""))
+        ]).lower()
+
+        x_title_or_variable_match = float(any(t in title or t in x_field for t in x_terms))
+        y_title_or_variable_match = float(any(t in title or t in y_field for t in y_terms))
+        xy_both_match = 1.0 if x_match > 0 and y_match > 0 else 0.0
+
+        topic_l1 = str(p.get("Topic_L1", "") or "").lower()
+        topic_l2 = str(p.get("Topic_L2", "") or "").lower()
+        category_match = float(any(t in query_text for t in [topic_l1, topic_l2] if t))
+
+        recency_score = float(recency_scores[idx])
+
+        if x_match == 0 and y_match == 0 and semantic_sims[idx] < 0.2:
+            continue
+
+        score = (
+            3.0 * xy_both_match
+            + 2.0 * x_title_or_variable_match
+            + 1.5 * y_title_or_variable_match
+            + 1.0 * semantic_sims[idx]
+            + 0.3 * recency_score
+            + 0.5 * category_match
+        )
+
+        scores.append((idx, score))
+
+    if not scores:
+        return select_papers(papers, input_x, input_y, max_papers=max_papers)
+
+    ranked_idx = [idx for idx, _ in sorted(scores, key=lambda kv: kv[1], reverse=True)]
     selected = [papers[i] for i in ranked_idx[:max_papers]]
     return selected
 
@@ -811,11 +695,43 @@ Priority 4 — Methodologically relevant studies only:
   → Extract method logic only. Do NOT force topical connections.
 
 If no Priority 1 studies exist:
-  → Explicitly acknowledge this in your interpretation.
+  → You MUST explicitly state that no direct X–Y literature exists.
+  → You MUST frame the research gap as a missing linkage between two partially studied domains.
+  → ALL research questions must be constructed as bridging mechanisms between X and Y.
   → Use your own knowledge for content-level gaps.
 
 Do NOT treat all prior studies as equally relevant.
 Do NOT force connections between studies and X–Y.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[PRIOR STUDIES SELF-ASSESSMENT — MANDATORY]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Before using prior studies, assess their relevance:
+
+STEP 1 — Classify each study:
+  - Priority 1: directly links X and Y → use for gap identification
+  - Priority 2: related to Y only → use for demand-side context
+  - Priority 3: related to X only → use for supply/disclosure/contextual channel
+  - Priority 4: unrelated to both → IGNORE entirely
+
+STEP 2 — Output this classification block before RQ generation:
+  "Prior studies assessment:
+   - Priority 1 found: YES / NO
+   - Priority 2 count: N
+   - Priority 3 count: N
+   - Priority 4 ignored: N"
+
+STEP 3 — Apply fallback rules:
+  If Priority 1 = NONE:
+    → State explicitly: "No direct X–Y literature identified."
+    → Treat this as a bridging opportunity between two separately studied domains.
+    → Draw content-level gaps from your own knowledge of insurance, risk management, and finance literature, not from Priority 4 studies.
+
+  If Priority 2 + Priority 3 together < 3:
+    → Rely primarily on your own domain knowledge.
+    → Use retrieved studies only where genuinely applicable.
+
+Do NOT force unrelated prior studies into the rationale.
 """
     else:
         knowledge_block = """
@@ -831,7 +747,8 @@ Do NOT force connections between studies and X–Y.
     y_interpretation = infer_variable_role(input_y, "Y")
 
     prompt = f"""
-You are an expert academic research advisor in insurance, risk management, and quantitative finance.
+You are an expert academic research advisor in insurance, risk management, 
+and quantitative finance.
 
 Your task is to generate NOVEL research questions that have NOT yet been extensively studied in existing literature.
 
@@ -988,53 +905,216 @@ Method:
     return prompt.strip()
 
 # -----------------------------
-# Streamlit UI skeleton
+# UI
+
 # -----------------------------
-st.title("RQ PromptGenerator")
+st.set_page_config(layout="wide")
 
-st.info("""
-이 도구는 입력한 X와 Y를 기반으로 데이터셋 내 유사 연구를 참고하여
-생성형 AI에 입력할 수 있는 Research Question 생성용 프롬프트를 제공합니다.
+# Paths
+TREE_PATH = "tree.json"
+PAPERS_PATH = "data/RQ_generator_dataset.xlsx"  # 필요 시 변경
 
-※ X와 Y를 모두 입력해야 합니다.
-※ X 또는 Y가 모호한 경우, 프롬프트 안에서 변수 해석을 먼저 명확히 하도록 설계되어 있습니다.
-        
-※ 본 시스템은 생성형 AI를 직접 호출하지 않습니다.
-프롬프트를 복사하여 ChatGPT, Claude, Gemini 등에 붙여넣어 사용하세요.
+tree = load_tree(TREE_PATH)
+papers_idx = load_papers_index(PAPERS_PATH)
+root_name = tree.get("name", "ROOT")
+level1_nodes = tree.get("children", []) or []
 
-━━━━━━━━━━━━━━━━━━━━[논문 Novelty 요구조건]━━━━━━━━━━━━━━━━━━━━
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Page", ["Node Explorer", "RQ Generator"]);
+show_ids = st.sidebar.checkbox("Show paper_ids in leaf nodes", value=False)
 
-① 방법론적 참신성 (Methodological Novelty)
-기존 연구에서 일반적으로 사용되지 않았던 비표준적 방법론, 고급 계량경제 기법, 또는 새로운 모델링 접근
+# label -> node 매핑
+def node_label(n: dict) -> str:
+    name = str(n.get("name", "")).strip()
+    value = n.get("value", None)
+    return f"{name} (n={value})" if value is not None else name
 
-② 맥락적 참신성 (Contextual Novelty)
-특정 집단, 시장 환경, 또는 시기적·제도적 변화 맥락 분석
+level1_label_to_node = {node_label(n): n for n in level1_nodes}
 
-③ 변수 결합의 참신성 (Variable-Combination Novelty)
-변수 간의 새로운 결합, 상호작용 효과, 비선형 관계, 또는 잠재적 메커니즘 탐색
+st.sidebar.header("Node selection")
+chosen_l1_label = st.sidebar.selectbox(
+    "Level 1",
+    ["(All categories)"] + list(level1_label_to_node.keys()),
+    index=0
+)
 
-""")
+if chosen_l1_label == "(All categories)":
+    selected_path = root_name
+else:
+    l1_node = level1_label_to_node[chosen_l1_label]
+    l1_name = str(l1_node.get("name", "")).strip()
 
-x = st.text_input("X", placeholder="예: pandemic, regulation, risk disclosure")
-y = st.text_input("Y", placeholder="예: insurance demand, operational risk losses, firm performance")
+    raw_level2_nodes = l1_node.get("children", []) or []
 
-run = st.button("RQ Prompt 생성", disabled=not (x.strip() and y.strip()))
+    if len(raw_level2_nodes) == 1:
+        only_child = raw_level2_nodes[0]
+        only_child_name = str(only_child.get("name", "")).strip()
+        grand_children = only_child.get("children", []) or []
 
-if run:
-    if not x.strip() or not y.strip():
-        st.warning("X와 Y를 모두 입력해주세요.")
-        st.stop()
+        if grand_children and len(only_child_name) <= 3:
+            level2_nodes = grand_children
+            level2_parent_path = f"{root_name} / {l1_name} / {only_child_name}"
+        else:
+            level2_nodes = raw_level2_nodes
+            level2_parent_path = f"{root_name} / {l1_name}"
+    else:
+        level2_nodes = raw_level2_nodes
+        level2_parent_path = f"{root_name} / {l1_name}"
 
-    if len(papers_in_node) == 0:
-        st.warning("현재 선택된 노드에서 사용할 논문이 없습니다.")
+    level2_label_to_node = {node_label(n): n for n in level2_nodes}
 
-    prompt = build_rq_prompt(
-        input_x=x.strip(),
-        input_y=y.strip(),
-        papers_in_node=papers_in_node,
-        max_papers=10
+    chosen_l2_label = st.sidebar.selectbox(
+        "Level 2",
+        ["(All under selected Level 1)"] + list(level2_label_to_node.keys()),
+        index=0
     )
 
-    st.markdown("### 생성형 AI에 사용할 프롬프트")
-    st.caption("📋 우측 상단 복사 버튼을 눌러 ChatGPT / Claude / Gemini에 붙여넣으세요")
-    st.code(prompt, language="text")
+    if chosen_l2_label == "(All under selected Level 1)":
+        selected_path = level2_parent_path
+    else:
+        l2_node = level2_label_to_node[chosen_l2_label]
+        l2_name = str(l2_node.get("name", "")).strip()
+        selected_path = f"{level2_parent_path} / {l2_name}"
+
+paper_ids = []
+papers_in_node = []
+node = find_node_by_path(tree, selected_path)
+if node is not None:
+    paper_ids = collect_paper_ids_under(node)
+    for pid in paper_ids:
+        p = papers_idx.get(norm_pid(pid))
+        if p:
+            papers_in_node.append(p)
+
+if page == "Node Explorer":
+    st.title("Insurance & Risk Management Literature Tree Explorer")
+    dot = build_graphviz(tree, show_paper_ids=show_ids)
+    st.graphviz_chart(dot, use_container_width=True)
+
+    if node is None:
+        st.error("Selected node not found in tree.")
+    else:
+        st.subheader(f"Selection: {selected_path}")
+        st.caption(f"Papers under this category: {len(paper_ids)}")
+
+        y_to_papers = defaultdict(list)
+        missing = []
+
+        for pid in paper_ids:
+            p = papers_idx.get(norm_pid(pid))
+            if not p:
+                missing.append(pid)
+                continue
+            y_cat = extract_y_category(p)
+            y_to_papers[y_cat].append(pid)
+
+        rows = []
+        for y, ids in sorted(y_to_papers.items(), key=lambda kv: (kv[0].lower(), -len(kv[1]))):
+            rows.append({"Y_Category": y, "n_papers": len(ids)})
+
+        st.markdown("### Y categories under this node")
+        st.dataframe(rows, use_container_width=True, hide_index=True)
+
+        if len(rows) == 0:
+            st.info("이 노드 아래에서 집계할 논문이 없어요 (paper_ids가 없거나 papers.jsonl 매칭 실패).")
+            if missing:
+                st.caption(f"tree에는 있는데 {PAPERS_PATH}에 없는 paper_id (처음 20개):")
+                st.code("\n".join(missing[:20]))
+            st.stop()
+
+        st.markdown("### Papers by Selected Y Category")
+        y_options = [r["Y_Category"] for r in rows]
+        chosen_y = st.selectbox("Choose a Y Category", y_options)
+
+        chosen_ids = y_to_papers.get(chosen_y, [])
+        paper_list = []
+        for pid in chosen_ids:
+            p = papers_idx.get(norm_pid(pid))
+            title = paper_title(p) if p else ""
+            summary = extract_summary_subject(p) if p else ""
+            summary = shorten(summary or "", n=300)
+            citation = paper_citation_brief(p) if p else ""
+            journal = paper_journal(p) if p else ""
+            doi = norm_pid(pid)
+            paper_list.append({
+                "citation": citation,
+                "title": title,
+                "summary": summary,
+                "journal": journal,
+                "doi": doi,
+                "dependent_y": p.get("empirical_analysis", {}).get("Dependent_Variable_Y", "") if p else "",
+            })
+
+        st.markdown(f"#### **{chosen_y}** (n= {len(paper_list)})")
+        table_rows = []
+        for i, row in enumerate(paper_list, start=1):
+            table_rows.append({
+                "No": i,
+                "Author (Year)": row.get("citation", ""),
+                "Dependent Y": row.get("dependent_y", ""),
+                "Journal": row.get("journal", ""),
+                "Title": row.get("title", ""),
+                "Summary": row.get("summary", ""),
+                "DOI": f"https://doi.org/{row.get('doi','')}" if row.get("doi") else ""
+            })
+
+        st.dataframe(table_rows, use_container_width=True, hide_index=True)
+
+        if missing:
+            st.warning(f"{len(missing)} paper_ids were in tree.json but not found in {PAPERS_PATH}. (showing first 10)")
+            st.code("\n".join(missing[:10]))
+
+else:
+    st.title("RQ Prompt Generator")
+    st.markdown("### Node-based RQ generation")
+    st.info("""
+    이 도구는 입력한 X와 Y를 기반으로 데이터셋 내 유사 연구를 참고하여  
+    생성형 AI에 입력할 수 있는 Research Question 생성용 프롬프트를 제공합니다.
+
+    ※ X와 Y를 모두 입력해야 합니다.  
+    ※ X 또는 Y가 모호한 경우, 프롬프트 내에서 변수 해석을 먼저 명확히 하도록 설계되어 있습니다.  
+
+    ※ 본 시스템은 생성형 AI를 직접 호출하지 않습니다.  
+    프롬프트를 복사하여 ChatGPT, Claude, Gemini 등에 붙여넣어 사용하세요.
+    """)
+
+    st.markdown("---")
+
+    st.markdown("### 📊 논문 Novelty 요구조건")
+
+    st.markdown("""
+    ① **방법론적 참신성 (Methodological Novelty)**  
+    기존 연구에서 일반적으로 사용되지 않았던 비표준적 방법론,  
+    고급 계량경제 기법, 또는 새로운 모델링 접근
+
+    ② **맥락적 참신성 (Contextual Novelty)**  
+    특정 집단, 시장 환경, 또는 시기적·제도적 변화 맥락 분석
+
+    ③ **변수 결합의 참신성 (Variable-Combination Novelty)**  
+    변수 간 새로운 결합, 상호작용 효과, 비선형 관계,  
+    또는 잠재적 메커니즘 탐색
+    """)
+
+    st.markdown("---")
+    st.caption(f"Current node: {selected_path} — {len(papers_in_node)} papers available")
+
+    x = st.text_input("X", placeholder="예: pandemic, regulation, risk disclosure")
+    y = st.text_input("Y", placeholder="예: insurance demand, operational risk losses, firm performance")
+    run = st.button("RQ Prompt 생성", disabled=not (x.strip() and y.strip()))
+
+    if run:
+        if not x.strip() or not y.strip():
+            st.warning("X와 Y를 모두 입력해주세요.")
+        elif len(papers_in_node) == 0:
+            st.warning("현재 선택된 노드에서 사용할 논문이 없습니다.")
+        else:
+            prompt = build_rq_prompt(
+                input_x=x.strip(),
+                input_y=y.strip(),
+                papers_in_node=papers_in_node,
+                max_papers=10
+            )
+            st.markdown("### 생성형 AI에 사용할 프롬프트")
+            st.caption("📋 우측 상단 복사 버튼을 눌러 ChatGPT / Claude / Gemini에 붙여넣으세요")
+            st.code(prompt, language="text")
+
