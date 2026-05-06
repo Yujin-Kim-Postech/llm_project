@@ -492,37 +492,85 @@ def heuristic_category(normalized_y: str) -> str:
         or "conditional tail expectation" in y
         or "cte" in y
         or "expected shortfall" in y
+        or "tail conditional expectation" in y
         or "risk measure" in y
         or "risk measures" in y
         or "distortion risk" in y
         or "haezendonck-goovaerts" in y
         or "h-g risk" in y
+
+        # EVT / extremes
         or "extreme quantile" in y
         or "extreme value" in y
         or "extremal" in y
+        or "extreme precipitation" in y
+        or "extreme wind" in y
+        or "storm peak" in y
+        or "river flow" in y
+        or "rainfall" in y
+        or "burned area" in y
+        or "surface temperature extremes" in y
+        or "temperature anomalies" in y
+        or "max-stable" in y
+        or "max stable" in y
+        or "spectral measure" in y
+        or "exponent measure" in y
+        or "angular dependence" in y
+        or "marginal extremes" in y
+        or "conditional extremes" in y
+        or "multivariate extremes" in y
+        or "joint extremes" in y
+        or "extreme dependence" in y
+        or "extreme event" in y
+
+        # exceedance / threshold
         or "exceedance" in y
+        or "threshold exceedance" in y
         or "threshold" in y
+        or "high threshold" in y
         or "right endpoint" in y
+
+        # maxima / records
         or "maxima" in y
         or "maximum values" in y
         or "record values" in y
+        or "annual maximum" in y
+        or "maximum temperature" in y
+        or "maximum jump length" in y
+
+        # tail dependence / copula
         or "tail index" in y
         or "tail dependence" in y
         or "copula" in y
-        or "spearman" in y
+        or "copula approximation" in y
+        or "dependence parameter" in y
         or "dependence measure" in y
-        or "extremogram" in y
-        or "pickands" in y
-        or "brown-resnick" in y
-        or "generalized pareto" in y
-        or "heavy-tailed" in y
+        or "positive quadrant dependence" in y
         or "joint survival probability" in y
         or "joint exceedance probability" in y
         or "probability of high extremes" in y
         or "probability of exceeding high threshold" in y
         or "risk concentration" in y
+
+        # EVT estimators / processes
+        or "extremogram" in y
+        or "pickands" in y
+        or "brown-resnick" in y
+        or "generalized pareto" in y
+        or "hill estimator" in y
+        or "heavy-tailed" in y
+        or "heavy tailed" in y
+        or "conditional quantile" in y
+        or "quantile estimates" in y
+        or "l_p-quantiles" in y
+        or "occupation times" in y
+        or "stochastic process paths" in y
+        or "supremum" in y
+        or "infimum" in y
+        or "crossings" in y
+        or "first event time" in y
     ):
-        return "Risk Measures & Tail Risk"
+        return "Risk Measures, Tail Risk & Extreme Value Quantities"
 
     # 8. investment / portfolio / financial market
     if (
