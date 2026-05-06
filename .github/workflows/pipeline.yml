@@ -35,13 +35,21 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      # 1) Build tree.json from RQ_generator_dataset.xlsx
+      # 1) Update Y Categories
+      - name: Update Y Categories
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python src/update_y_category.py
+
+      # 2) Build tree.json from RQ_generator_dataset.xlsx
       - name: Build tree.json (RQ_generator_dataset.xlsx -> tree.json)
         run: |
           python src/build_tree.py --papers data/RQ_generator_dataset.xlsx --out tree.json
 
-      # 2) Upload outputs as artifact
+      # 3) Upload outputs as artifact
       - name: Upload outputs
         uses: actions/upload-artifact@v4
         with:

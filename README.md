@@ -1,12 +1,13 @@
-# insurance-rq-tree (starter)
+# Insurance-RQ Generator
 
 A structured and extensible research classification system for insurance-related academic papers.
 
 This repository provides:
-- A structured L1/L2 research classification system
+- A structured Topic_L1/opic_L2 research classification system
 - A tree-building pipeline
 - A Streamlit-based visualization app
 - A governance-ready, extensible categorization framework
+- A LLM-based research question generator
 
 The system is designed to evolve with the literature.  
 No ontology is permanently fixed.
